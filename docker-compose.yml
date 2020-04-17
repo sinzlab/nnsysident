@@ -1,6 +1,6 @@
 version: "2.3"
 services:
-  notebook:
+  local_notebook:
     build: ..
     volumes:
       - ./notebooks/models:/notebooks/models
@@ -29,7 +29,7 @@ services:
     entrypoint: /usr/local/bin/python3
     env_file: .env
 
-  gpujob:
+  gpu_job:
     build: ..
     volumes:
       - ./notebooks/models:/notebooks/models
@@ -44,22 +44,7 @@ services:
     entrypoint: /usr/local/bin/python3
     command: run.py
 
-  gpujob_server:
-    build: ..
-    volumes:
-      - ./notebooks/models:/notebooks/models
-      - /var/lib/nova/sinz-shared/mouse/toliaslab/static:/notebooks/data
-      - ./notebooks:/notebooks
-      - ../ml-utils:/src/ml-utils
-      - ../NIPS-System-Identification:/src/nips
-      - ../nnsysident:/src/nnsysident
-      - /tmp/djcache:/cache
-    env_file: .env
-    runtime: nvidia
-    entrypoint: /usr/local/bin/python3
-    command: run.py
-
-  notebook_server:
+  gpu_notebook:
     build: ..
     volumes:
       - ./notebooks/models:/notebooks/models
