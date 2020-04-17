@@ -1,0 +1,78 @@
+version: "2.3"
+services:
+  notebook:
+    build: ..
+    volumes:
+      - ./notebooks/models:/notebooks/models
+      - $HOME/data/static:/notebooks/data
+      - ./notebooks:/notebooks
+      - ../ml-utils:/src/ml-utils
+      - ../nnfabrik:/src/nnfabrik
+      - ../NIPS-System-Identification:/src/nips
+      - ../nnsysident:/src/nnsysident
+      - /tmp/djcache:/cache
+    ports:
+      - "8888:8888"
+    env_file: .env
+
+  local_debug:
+    build: ..
+    volumes:
+      - ./notebooks/models:/notebooks/models
+      - $HOME/data/static:/notebooks/data
+      - ./notebooks:/notebooks
+      - ../ml-utils:/src/ml-utils
+      - ../nnfabrik:/src/nnfabrik
+      - ../NIPS-System-Identification:/src/nips
+      - ../nnsysident:/src/nnsysident
+      - /tmp/djcache:/cache
+    entrypoint: /usr/local/bin/python3
+    env_file: .env
+
+  gpujob:
+    build: ..
+    volumes:
+      - ./notebooks/models:/notebooks/models
+      - /var/sinz-shared/mouse/toliaslab/static:/notebooks/data
+      - ./notebooks:/notebooks
+      - ../ml-utils:/src/ml-utils
+      - ../NIPS-System-Identification:/src/nips
+      - ../nnsysident:/src/nnsysident
+      - /tmp/djcache:/cache
+    env_file: .env
+    runtime: nvidia
+    entrypoint: /usr/local/bin/python3
+    command: run.py
+
+  gpujob_server:
+    build: ..
+    volumes:
+      - ./notebooks/models:/notebooks/models
+      - /var/lib/nova/sinz-shared/mouse/toliaslab/static:/notebooks/data
+      - ./notebooks:/notebooks
+      - ../ml-utils:/src/ml-utils
+      - ../NIPS-System-Identification:/src/nips
+      - ../nnsysident:/src/nnsysident
+      - /tmp/djcache:/cache
+    env_file: .env
+    runtime: nvidia
+    entrypoint: /usr/local/bin/python3
+    command: run.py
+
+  notebook_server:
+    build: ..
+    volumes:
+      - ./notebooks/models:/notebooks/models
+      - /var/lib/nova/sinz-shared/mouse/toliaslab/static:/notebooks/data
+      - ./notebooks:/notebooks
+      - ../ml-utils:/src/ml-utils
+      - ../nnfabrik:/src/nnfabrik
+      - ../NIPS-System-Identification:/src/nips
+      - ../nnsysident:/src/nnsysident
+      - /tmp/djcache:/cache
+    env_file: .env
+    ports:
+      - "8888:8888"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=0
+    runtime: nvidia
