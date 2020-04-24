@@ -10,6 +10,7 @@ services:
       - ../nnfabrik:/src/nnfabrik
       - ../NIPS-System-Identification:/src/nips
       - ../nnsysident:/src/nnsysident
+      - ../data_port:/src/data_port
       - /tmp/djcache:/cache
     ports:
       - "8888:8888"
@@ -25,6 +26,7 @@ services:
       - ../nnfabrik:/src/nnfabrik
       - ../NIPS-System-Identification:/src/nips
       - ../nnsysident:/src/nnsysident
+      - ../data_port:/src/data_port
       - /tmp/djcache:/cache
     entrypoint: /usr/local/bin/python3
     env_file: .env
@@ -38,6 +40,7 @@ services:
       - ../ml-utils:/src/ml-utils
       - ../NIPS-System-Identification:/src/nips
       - ../nnsysident:/src/nnsysident
+      - ../data_port:/src/data_port
       - /tmp/djcache:/cache
     env_file: .env
     runtime: nvidia
@@ -54,6 +57,7 @@ services:
       - ../nnfabrik:/src/nnfabrik
       - ../NIPS-System-Identification:/src/nips
       - ../nnsysident:/src/nnsysident
+      - ../data_port:/src/data_port
       - /tmp/djcache:/cache
     env_file: .env
     ports:
