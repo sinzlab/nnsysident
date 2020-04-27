@@ -6,6 +6,7 @@ from mlutils import regularizers
 
 from torch.nn import functional as F
 from torchvision.models import vgg16, alexnet, vgg19, vgg19_bn
+from .architectures import SQ_EX_Block
 
 try:
     from ptrnets import vgg19_original, vgg19_norm
@@ -47,13 +48,13 @@ class TransferLearningCore(Core2d, nn.Module):
         self.features = nn.Sequential()
 
         tr_features = nn.Sequential(*list(tr_model.features.children())[:model_layer])
-        
+
         # Remove the bias of the last conv layer if not :bias:
         if not bias:
             if 'bias' in tr_features[-1]._parameters:
                 zeros = torch.zeros_like(tr_features[-1].bias)
                 tr_features[-1].bias.data = zeros
-        
+
         # Fix pretrained parameters during training parameters
         if not fine_tune:
             for param in tr_features.parameters():
@@ -89,9 +90,6 @@ class TransferLearningCore(Core2d, nn.Module):
         return self.features.TransferLearning[-i].out_channels
 
 
-
-
-from .architectures import SQ_EX_Block
 
 class SE2dCore(Core2d, nn.Module):
     def __init__(
