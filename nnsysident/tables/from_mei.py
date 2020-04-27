@@ -2,9 +2,9 @@ import datajoint as dj
 from featurevis.main import TrainedEnsembleModelTemplate, CSRFV1SelectorTemplate, MEIMethod, MEITemplate
 from nnfabrik.main import Dataset
 from .from_nnfabrik import TrainedModel
-from mlutils.data.datasets import StaticImageSet
+from mlutils.data.datasets import StaticImageSet, FileTreeDataset
 from featurevis import integration
-from ..mei.helpers import get_neuron_mappings_sessions, get_real_mappings
+from ..mei.helpers import get_neuron_mappings, get_real_mappings
 
 schema = dj.schema(dj.config.get('schema_name', 'nnfabrik_core'))
 
@@ -29,16 +29,17 @@ class MouseSelectorTemplate(dj.Computed):
     session_id      : varchar(13)       # unique session identifier
     """
 
-    _key_source = Dataset & dict(dataset_fn="mouse_static_loaders")
+    #_key_source = Dataset & dict(dataset_fn="mouse_static_loaders")
 
     def make(self, key):
         dataset_config = (Dataset & key).fetch1("dataset_config")
 
         path = dataset_config["paths"][0]
-        dat = StaticImageSet(path, 'images', 'responses')
+        file_tree = dataset_config.get("file_tree", False)
+        dat = StaticImageSet(path, 'images', 'responses') if not file_tree else FileTreeDataset(path, 'images', 'responses')
         neuron_ids = dat.neurons.unit_ids
 
-        data_key = path.split('static')[-1].split('.')[0].replace('preproc', '')
+        data_key = path.split('static')[-1].split('.')[0].replace('preproc', '').replace('_nobehavior','')
 
         mappings = []
         for neuron_pos, neuron_id in enumerate(neuron_ids):
@@ -67,16 +68,17 @@ class MonkeySelectorTemplate(dj.Computed):
     # the model. 
     -> self.dataset_table
     neuron_id       : int # unique neuron identifier
+    session_id      : varchar(13)       # unique session identifier
     ---
     neuron_position : int # integer position of the neuron in the model's output 
-    session_id      : varchar(13)       # unique session identifier
+    
     """
 
-    _key_source = Dataset & dict(dataset_fn="nnsysident.datasets.monkey_static_loader")
+    #_key_source = Dataset & dict(dataset_fn="nnsysident.datasets.monkey_static_loader")
 
     def make(self, key):
         dataset_config = (Dataset & key).fetch1("dataset_config")
-        mappings = get_neuron_mappings_sessions(dataset_config, key)
+        mappings = get_neuron_mappings(dataset_config, key)
         self.insert(mappings)
 
     def get_output_selected_model(self, model, key):
