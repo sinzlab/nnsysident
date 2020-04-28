@@ -27,17 +27,17 @@ class Encoder(nn.Module):
         return self.core.regularizer() + self.readout.regularizer(data_key=data_key)
 
 
-def se_core_full_gauss_readout(
+def se2d_fullgaussian2d(
     dataloaders,
     seed,
     elu_offset=0,
     data_info=None,
                                              # core args
-    hidden_channels=32,
-    input_kern=13,
-    hidden_kern=3,
-    layers=3,
-    gamma_input=15.5,
+    hidden_channels=64,
+    input_kern=9,
+    hidden_kern=7,
+    layers=4,
+    gamma_input=6.3831,
     skip=0,
     bias=False,
     final_nonlinearity=True,
@@ -47,21 +47,49 @@ def se_core_full_gauss_readout(
     hidden_dilation=1,
     laplace_padding=None,
     input_regularizer="LaplaceL2norm",
-    stack=None,
+    stack=-1,
     se_reduction=32,
-    n_se_blocks=1,
-    depth_separable=False,
+    n_se_blocks=0,
+    depth_separable=True,
     linear=False,
                                               # readout args
-    init_mu_range=0.2,
-    init_sigma=1.0,
+    init_mu_range=0.3,
+    init_sigma=0.1,
     readout_bias=True,
-    gamma_readout=4,
+    gamma_readout=0.0076,
     gauss_type="full",
-    grid_mean_predictor=None,
+    grid_mean_predictor={'type': 'cortex',
+    'input_dimensions': 2,
+    'hidden_layers': 0,
+    'hidden_features': 30,
+    'final_tanh': True},
     share_features=False,
     share_grid=False,
 ):
+    """
+    Model class of a SE2dCore (from nnsysident) and a MultipleFullGaussian2d (Multiple from nnsysident,
+    readout from mlutils)
+    Args:
+        dataloaders: a dictionary of dataloaders, one loader per session
+            in the format {'data_key': dataloader object, .. }
+        seed: random seed
+        elu_offset: Offset for the output non-linearity [F.elu(x + self.offset)]
+        grid_mean_predictor: if not None, needs to be a dictionary of the form
+            {
+            'type': 'cortex',
+            'input_dimensions': 2,
+            'hidden_layers':0,
+            'hidden_features':20,
+            'final_tanh': False,
+            }
+            In that case the datasets need to have the property `neurons.cell_motor_coordinates`
+        share_features: whether to share features between readouts. This requires that the datasets
+            have the properties `neurons.multi_match_id` which are used for matching. Every dataset
+            has to have all these ids and cannot have any more.
+        all other args: See Documentation of Stacked2dCore in mlutils.layers.cores and
+            PointPooled2D in mlutils.layers.readouts
+    Returns: An initialized model which consists of model.core and model.readout
+    """
 
     if data_info is not None:
         n_neurons_dict, in_shapes_dict, input_channels = unpack_data_info(data_info)
