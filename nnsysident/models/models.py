@@ -58,11 +58,7 @@ def se2d_fullgaussian2d(
     readout_bias=True,
     gamma_readout=0.0076,
     gauss_type="full",
-    grid_mean_predictor={'type': 'cortex',
-    'input_dimensions': 2,
-    'hidden_layers': 0,
-    'hidden_features': 30,
-    'final_tanh': True},
+    grid_mean_predictor={'type': 'cortex', 'input_dimensions': 2, 'hidden_layers': 0, 'hidden_features': 30, 'final_tanh': True},
     share_features=False,
     share_grid=False,
 ):
