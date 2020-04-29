@@ -11,7 +11,6 @@ from nnfabrik.utility.nn_helpers import set_random_seed
 from .utility import get_oracle_dataloader
 
 
-
 def static_loader(
     path,
     batch_size,
@@ -125,11 +124,11 @@ def static_loader(
         # sample images
         if tier == "train" and image_ids is not None:
             subset_idx = [np.where(image_id_array == image_id)[0][0] for image_id in image_ids]
-            assert sum(tier_array[subset_idx] != 'train') == 0, 'image_ids contain validation or test images'
+            assert sum(tier_array[subset_idx] != "train") == 0, "image_ids contain validation or test images"
         else:
             subset_idx = np.where(tier_array == tier)[0]
 
-        sampler = SubsetRandomSampler(subset_idx) if tier == 'train' else SubsetSequentialSampler(subset_idx)
+        sampler = SubsetRandomSampler(subset_idx) if tier == "train" else SubsetSequentialSampler(subset_idx)
         dataloaders[tier] = DataLoader(dat, sampler=sampler, batch_size=batch_size)
 
     # create the data_key for a specific data path
