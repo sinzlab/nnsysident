@@ -15,11 +15,11 @@ from .utility import get_oracle_dataloader
 def static_loader(
     path,
     batch_size,
-    seed=None,
     areas=None,
     layers=None,
     tier=None,
     neuron_ids=None,
+    image_ids=None,
     get_key=False,
     cuda=True,
     normalize=True,
@@ -38,11 +38,11 @@ def static_loader(
     Args:
         path (list): list of path(s) for the dataset(s)
         batch_size (int): batch size.
-        seed (int, optional): random seed for images.
         areas (list, optional): the visual area.
         layers (list, optional): the layer from visual area.
         tier (str, optional): tier is a placeholder to specify which set of images to pick for train, val, and test loader.
         neuron_ids (list, optional): select neurons by their ids. neuron_ids and path should be of same length.
+        image_ids (list, optional): select images by their ids. image_ids and path should be of same length.
         get_key (bool, optional): whether to return the data key, along with the dataloaders.
         cuda (bool, optional): whether to place the data on gpu or not.
         normalize (bool, optional): whether to normalize the data (see also exclude)
@@ -119,15 +119,17 @@ def static_loader(
     # subsample images
     dataloaders = {}
     keys = [tier] if tier else ["train", "validation", "test"]
+    tier_array = dat.trial_info.tiers if file_tree else dat.tiers
+    image_id_array = dat.trial_info.frame_image_id if file_tree else dat.info.frame_image_id
     for tier in keys:
-
-        if seed is not None:
-            set_random_seed(seed)
-            # torch.manual_seed(img_seed)
-
         # sample images
-        subset_idx = np.where(dat.trial_info.tiers == tier)[0] if file_tree else np.where(dat.tiers == tier)[0]
-        sampler = SubsetRandomSampler(subset_idx) if tier == "train" else SubsetSequentialSampler(subset_idx)
+        if tier == "train" and image_ids is not None:
+            subset_idx = [np.where(image_id_array == image_id)[0][0] for image_id in image_ids]
+            assert sum(tier_array[subset_idx] != 'train') == 0, 'image_ids contain validation or test images'
+        else:
+            subset_idx = np.where(tier_array == tier)[0]
+
+        sampler = SubsetRandomSampler(subset_idx) if tier == 'train' else SubsetSequentialSampler(subset_idx)
         dataloaders[tier] = DataLoader(dat, sampler=sampler, batch_size=batch_size)
 
     # create the data_key for a specific data path
@@ -138,11 +140,11 @@ def static_loader(
 def static_loaders(
     paths,
     batch_size,
-    seed=None,
     areas=None,
     layers=None,
     tier=None,
     neuron_ids=None,
+    image_ids=None,
     cuda=True,
     normalize=True,
     include_behavior=False,
@@ -158,11 +160,11 @@ def static_loaders(
     Args:
         paths (list): list of paths for the datasets
         batch_size (int): batch size.
-        seed (int, optional): random seed for images.
         areas (list, optional): the visual area.
         layers (list, optional): the layer from visual area.
         tier (str, optional): tier is a placeholder to specify which set of images to pick for train, val, and test loader.
         neuron_ids (list, optional): select neurons by their ids. neuron_ids and path should be of same length.
+        image_ids (list, optional): select images by their ids. image_ids and path should be of same length.
         cuda (bool, optional): whether to place the data on gpu or not.
         normalize (bool, optional): whether to normalize the data (see also exclude)
         exclude (str, optional): data to exclude from data-normalization. Only relevant if normalize=True. Defaults to 'images'
@@ -191,6 +193,7 @@ def static_loaders(
             tier=tier,
             get_key=True,
             neuron_ids=neuron_id,
+            image_ids=image_ids,
             normalize=normalize,
             include_behavior=include_behavior,
             exclude=exclude,
@@ -207,11 +210,11 @@ def static_loaders(
 def static_shared_loaders(
     paths,
     batch_size,
-    seed=None,
     areas=None,
     layers=None,
     tier=None,
     multi_match_ids=None,
+    image_ids=None,
     cuda=True,
     normalize=True,
     include_behavior=False,
@@ -227,11 +230,11 @@ def static_shared_loaders(
     Args:
         paths (list): list of paths for the datasets
         batch_size (int): batch size.
-        seed (int, optional): random seed for images.
         areas (list, optional): the visual area.
         layers (list, optional): the layer from visual area.
         tier (str, optional): tier is a placeholder to specify which set of images to pick for train, val, and test loader.
         multi_match_ids (list, optional): select neurons by their ids. neuron_ids and path should be of same length.
+        image_ids (list, optional): select images by their ids. image_ids and path should be of same length.
         cuda (bool, optional): whether to place the data on gpu or not.
         normalize (bool, optional): whether to normalize the data (see also exclude)
         exclude (str, optional): data to exclude from data-normalization. Only relevant if normalize=True. Defaults to 'images'
@@ -290,6 +293,7 @@ def static_shared_loaders(
             tier=tier,
             get_key=True,
             neuron_ids=neuron_id,
+            image_ids=image_ids,
             normalize=normalize,
             include_behavior=include_behavior,
             exclude=exclude,
