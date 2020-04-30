@@ -14,7 +14,7 @@ from ..utility import measures
 from ..utility.measures import get_correlations, get_poisson_loss
 
 
-def nnvision_trainer(
+def standard_trainer(
     model,
     dataloaders,
     seed,
