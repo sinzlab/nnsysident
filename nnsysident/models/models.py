@@ -109,7 +109,23 @@ def se2d_fullgaussian2d(
         grid_mean_predictor_type = grid_mean_predictor.pop("type")
         if grid_mean_predictor_type == "cortex":
             input_dim = grid_mean_predictor.pop("input_dimensions", 2)
-            source_grids = {k: v.dataset.neurons.cell_motor_coordinates[:, :input_dim] for k, v in dataloaders.items()}
+            source_grids = {}
+            for k, v in dataloaders.items():
+                # real data
+                if v.dataset.neurons.animal_ids[0] != 0:
+                    source_grids[k] = v.dataset.neurons.cell_motor_coordinates[:, :input_dim]
+                # simulated data -> get random linear non-degenerate transform of true positions
+                else:
+                    source_grid_true = v.dataset.neurons.center[:, :input_dim]
+                    det = 0.0
+                    loops = 0
+                    grid_bias = np.random.rand(2) * 3
+                    while det < 5.0 and loops < 100:
+                        matrix = np.random.rand(2, 2) * 3
+                        det = np.linalg.det(matrix)
+                        loops += 1
+                    assert det > 5.0, "Did not find a non-degenerate matrix"
+                    source_grids[k] = np.add((matrix @ source_grid_true.T).T, grid_bias)
         elif grid_mean_predictor_type == "shared":
             pass
         else:
