@@ -4,6 +4,7 @@ import numpy as np
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 
+from nnfabrik.utility.nn_helpers import set_random_seed
 from mlutils.data.datasets import StaticImageSet, FileTreeDataset
 from mlutils.data.transforms import Subsample, ToTensor, NeuroNormalizer, AddBehaviorAsChannels, SelectInputChannel
 from mlutils.data.samplers import SubsetSequentialSampler
@@ -15,7 +16,6 @@ from dataport.bcm.static import fetch_non_existing_data
 def static_loader(
     path,
     batch_size,
-    seed=None,
     areas=None,
     layers=None,
     tier=None,
@@ -41,7 +41,6 @@ def static_loader(
     Args:
         path (str): path for the dataset
         batch_size (int): batch size.
-        seed (int, optional): seed (not really needed because there are neuron and image seeds. But nnfabrik requires it)
         areas (list, optional): the visual area.
         layers (list, optional): the layer from visual area.
         tier (str, optional): tier is a placeholder to specify which set of images to pick for train, val, and test loader.
@@ -66,7 +65,6 @@ def static_loader(
         if get_key is True it returns the data_key (as the first output) followed by the dataloder dictionary.
 
     """
-    np.random.seed(seed)
     assert any([image_ids is None, all([image_n is None, image_base_seed is None])]), \
         "image_ids can not be set at the same time with anhy other image selection criteria"
     assert any([neuron_ids is None, all([neuron_n is None, neuron_base_seed is None, areas is None, layers is None])]), \
@@ -154,6 +152,7 @@ def static_loader(
 def static_loaders(
     paths,
     batch_size,
+    seed=None,
     areas=None,
     layers=None,
     tier=None,
@@ -176,6 +175,7 @@ def static_loaders(
     Args:
         paths (list): list of paths for the datasets
         batch_size (int): batch size.
+        seed (int): seed. Not really needed because there are neuron and image seed. But nnFabrik requires it.
         areas (list, optional): the visual area.
         layers (list, optional): the layer from visual area.
         tier (str, optional): tier is a placeholder to specify which set of images to pick for train, val, and test loader.
@@ -195,7 +195,7 @@ def static_loaders(
     Returns:
         dict: dictionary of dictionaries where the first level keys are 'train', 'validation', and 'test', and second level keys are data_keys.
     """
-
+    set_random_seed(seed)
     dls = OrderedDict({})
     keys = [tier] if tier else ["train", "validation", "test"]
     for key in keys:
@@ -233,6 +233,7 @@ def static_loaders(
 def static_shared_loaders(
     paths,
     batch_size,
+    seed=None,
     areas=None,
     layers=None,
     tier=None,
@@ -255,6 +256,7 @@ def static_shared_loaders(
     Args:
         paths (list): list of paths for the datasets
         batch_size (int): batch size.
+        seed (int): seed. Not really needed because there are neuron and image seed. But nnFabrik requires it.
         areas (list, optional): the visual area.
         layers (list, optional): the layer from visual area.
         tier (str, optional): tier is a placeholder to specify which set of images to pick for train, val, and test loader.
@@ -273,7 +275,7 @@ def static_shared_loaders(
     Returns:
         dict: dictionary of dictionaries where the first level keys are 'train', 'validation', and 'test', and second level keys are data_keys.
     """
-
+    set_random_seed(seed)
     assert (
         len(paths) != 1
     ), "Only one dataset was specified in 'paths'. When using the 'static_shared_loaders', more than one dataset has to be passed."
