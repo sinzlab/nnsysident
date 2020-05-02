@@ -8,8 +8,10 @@ from mlutils.data.datasets import StaticImageSet, FileTreeDataset
 from mlutils.data.transforms import Subsample, ToTensor, NeuroNormalizer, AddBehaviorAsChannels, SelectInputChannel
 from mlutils.data.samplers import SubsetSequentialSampler
 from .utility import get_oracle_dataloader
+from dataport.bcm.static import fetch_non_existing_data
 
 
+@fetch_non_existing_data
 def static_loader(
     path,
     batch_size,
@@ -190,9 +192,6 @@ def static_loaders(
     Returns:
         dict: dictionary of dictionaries where the first level keys are 'train', 'validation', and 'test', and second level keys are data_keys.
     """
-    assert (
-        len(paths) != 1
-    ), "Only one dataset was specified in 'paths'. When using the 'static_loaders', more than one dataset has to be passed."
 
     dls = OrderedDict({})
     keys = [tier] if tier else ["train", "validation", "test"]
