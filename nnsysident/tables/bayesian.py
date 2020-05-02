@@ -22,6 +22,13 @@ dj.config["stores"]["minio_models_bayesian"] = {
 schema = dj.schema(dj.config.get('schema_name', 'nnfabrik_core'))
 print("Schema name: {}".format(dj.config["schema_name"]))
 
+
+@schema
+class SeedBayesian(dj.Manual):
+    definition = """
+    seed:   int     # Random seed that is passed to the model- and dataset-builder
+    """
+
 @schema
 class ModelBayesian(dj.Manual):
     definition = """
@@ -96,6 +103,7 @@ class ModelBayesian(dj.Manual):
 class TrainedModelBayesian(TrainedModelBase):
     table_comment = "Trained models for bayesian searches"
     model_table = ModelBayesian
+    seed_table = SeedBayesian
 
     class ModelStorage(TrainedModelBase.ModelStorage):
         storage = "minio_models_bayesian"

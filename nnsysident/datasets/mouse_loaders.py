@@ -15,6 +15,7 @@ from dataport.bcm.static import fetch_non_existing_data
 def static_loader(
     path,
     batch_size,
+    seed=None,
     areas=None,
     layers=None,
     tier=None,
@@ -40,6 +41,7 @@ def static_loader(
     Args:
         path (str): path for the dataset
         batch_size (int): batch size.
+        seed (int, optional): seed (not really needed because there are neuron and image seeds. But nnfabrik requires it)
         areas (list, optional): the visual area.
         layers (list, optional): the layer from visual area.
         tier (str, optional): tier is a placeholder to specify which set of images to pick for train, val, and test loader.
@@ -64,6 +66,7 @@ def static_loader(
         if get_key is True it returns the data_key (as the first output) followed by the dataloder dictionary.
 
     """
+    np.random.seed(seed)
     assert any([image_ids is None, all([image_n is None, image_base_seed is None])]), \
         "image_ids can not be set at the same time with anhy other image selection criteria"
     assert any([neuron_ids is None, all([neuron_n is None, neuron_base_seed is None, areas is None, layers is None])]), \
