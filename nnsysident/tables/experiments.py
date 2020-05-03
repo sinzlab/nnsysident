@@ -25,7 +25,21 @@ class TrainedModel(TrainedModelBase):
         storage = "minio_models"
 
 
-# @schema
-# class Experiments(dj.Manual):
-#     definition = """
-#     """
+@schema
+class Experiments(dj.Manual):
+    definition = """
+    # Table to keep track of collections of trained networks that form an experiment. 
+    # Instructions: 
+    # 1) Insert all combinations of dataset, model and trainer together with a common experiment name in this table. 
+    # 2) Populate the TrainedModel table by restricting it with this table and the experiment name.
+    # 3) After training, join this table with TrainedModel and restrict by experiment name to get your results
+       
+    -> Dataset
+    -> Trainer
+    -> Model
+    experiment_name: varchar(100)                     # name of experiment
+    ---
+    -> Fabrikant.proj()
+    experiment_comment='': varchar(2000)              # short description 
+    experiment_ts=CURRENT_TIMESTAMP:   timestamp      # UTZ timestamp at time of insertion
+    """
