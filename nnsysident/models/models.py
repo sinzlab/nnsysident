@@ -86,6 +86,10 @@ def se2d_fullgaussian2d(
             PointPooled2D in mlutils.layers.readouts
     Returns: An initialized model which consists of model.core and model.readout
     """
+    # TODO: Remove this hacky way of getting the "type" in the grid_mean_predictor
+    if grid_mean_predictor is not None:
+        grid_mean_predictor['type'] = 'cortex'
+
 
     if data_info is not None:
         n_neurons_dict, in_shapes_dict, input_channels = unpack_data_info(data_info)
