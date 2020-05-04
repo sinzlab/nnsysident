@@ -2,6 +2,7 @@ import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
+import copy
 
 from nnfabrik.utility.nn_helpers import get_module_output, set_random_seed, get_dims_for_loader_dict
 from .cores import SE2dCore
@@ -86,10 +87,6 @@ def se2d_fullgaussian2d(
             PointPooled2D in mlutils.layers.readouts
     Returns: An initialized model which consists of model.core and model.readout
     """
-    # TODO: Remove this hacky way of getting the "type" in the grid_mean_predictor
-    if grid_mean_predictor is not None:
-        grid_mean_predictor['type'] = 'cortex'
-
 
     if data_info is not None:
         n_neurons_dict, in_shapes_dict, input_channels = unpack_data_info(data_info)
@@ -110,6 +107,7 @@ def se2d_fullgaussian2d(
     source_grids = None
     grid_mean_predictor_type = None
     if grid_mean_predictor is not None:
+        grid_mean_predictor = copy.deepcopy(grid_mean_predictor)
         grid_mean_predictor_type = grid_mean_predictor.pop("type")
         if grid_mean_predictor_type == "cortex":
             input_dim = grid_mean_predictor.pop("input_dimensions", 2)
