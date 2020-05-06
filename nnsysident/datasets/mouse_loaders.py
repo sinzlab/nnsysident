@@ -102,9 +102,9 @@ def static_loader(
         random_state = np.random.get_state()
         if neuron_base_seed is not None:
             np.random.seed(neuron_base_seed * neuron_n) # avoid nesting by making seed dependent on number of neurons
+        assert len(dat.neurons.unit_ids) >= exclude_neuron_n + neuron_n, \
+            "After excluding {} neurons, there are not {} neurons left".format(exclude_neuron_n, neuron_n)
         neuron_ids = np.random.choice(dat.neurons.unit_ids, size=exclude_neuron_n + neuron_n, replace=False)[exclude_neuron_n:]
-        assert len(neuron_ids) == neuron_n, \
-            "After excluding {} neurons, there are only {} neurons left, not {}".format(exclude_neuron_n, len(neuron_ids), neuron_n)
         np.random.set_state(random_state)
     if neuron_ids is not None:
         idx = [np.where(dat.neurons.unit_ids == unit_id)[0][0] for unit_id in neuron_ids]
@@ -324,9 +324,9 @@ def static_shared_loaders(
         random_state = np.random.get_state()
         if multi_match_base_seed is not None:
             np.random.seed(multi_match_base_seed * multi_match_n) # avoid nesting by making seed dependent on number of neurons
+        assert len(match_set) >= exclude_multi_match_n + multi_match_n, \
+            "After excluding {} neurons, there are not {} matched neurons left".format(exclude_multi_match_n, multi_match_n)
         match_subset = np.random.choice(match_set, size=exclude_multi_match_n + multi_match_n, replace=False)[exclude_multi_match_n:]
-        assert len(match_subset) == multi_match_n, \
-            "After excluding {} neurons, there are only {} matched neurons left, not {}".format(exclude_multi_match_n, len(match_subset), multi_match_n)
         neuron_ids = [pdsi[np.isin(munit_ids, match_subset)] for munit_ids, pdsi in zip(multi_unit_ids, per_data_set_ids)]
         np.random.set_state(random_state)
     else:
