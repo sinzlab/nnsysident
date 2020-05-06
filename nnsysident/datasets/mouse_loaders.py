@@ -21,6 +21,7 @@ def static_loader(
     tier=None,
     neuron_ids=None,
     neuron_n=None,
+    exclude_neuron_n=0,
     neuron_base_seed=None,
     image_ids=None,
     image_n=None,
@@ -67,8 +68,10 @@ def static_loader(
     """
     assert any([image_ids is None, all([image_n is None, image_base_seed is None])]), \
         "image_ids can not be set at the same time with anhy other image selection criteria"
-    assert any([neuron_ids is None, all([neuron_n is None, neuron_base_seed is None, areas is None, layers is None])]), \
+    assert any([neuron_ids is None, all([neuron_n is None, neuron_base_seed is None, areas is None, layers is None, exclude_neuron_n==0])]), \
         "neuron_ids can not be set at the same time with any other neuron selection criteria"
+    assert any([exclude_neuron_n==0, neuron_base_seed is not None]),  \
+        "neuron_base_seed must be set when exclude_neuron_n is not 0"
 
     if file_tree:
         dat = (
@@ -99,7 +102,9 @@ def static_loader(
         random_state = np.random.get_state()
         if neuron_base_seed is not None:
             np.random.seed(neuron_base_seed * neuron_n) # avoid nesting by making seed dependent on number of neurons
-        neuron_ids = np.random.choice(dat.neurons.unit_ids, size=neuron_n, replace=False)
+        neuron_ids = np.random.choice(dat.neurons.unit_ids, size=exclude_neuron_n + neuron_n, replace=False)[exclude_neuron_n:]
+        assert len(neuron_ids) == neuron_n, \
+            "After excluding {} neurons, there are only {} neurons left, not {}".format(exclude_neuron_n, len(neuron_ids), neuron_n)
         np.random.set_state(random_state)
     if neuron_ids is not None:
         idx = [np.where(dat.neurons.unit_ids == unit_id)[0][0] for unit_id in neuron_ids]
@@ -158,6 +163,7 @@ def static_loaders(
     tier=None,
     neuron_ids=None,
     neuron_n=None,
+    exclude_neuron_n=0,
     neuron_base_seed=None,
     image_ids=None,
     image_n=None,
@@ -181,6 +187,8 @@ def static_loaders(
         tier (str, optional): tier is a placeholder to specify which set of images to pick for train, val, and test loader.
         neuron_ids (list, optional): select neurons by their ids. neuron_ids and path should be of same length.
         neuron_n (int, optional): number of neurons to select randomly. Can not be set together with neuron_ids
+        exclude_neuron_n (int): the first <exclude_neuron_n> neurons will be excluded (given a neuron_base_seed),
+                                then <neuron_n> neurons will be drawn from the remaining neurons.
         neuron_base_seed (float, optional): base seed for neuron selection. Get's multiplied by neuron_n to obtain final seed
         image_ids (list, optional): select images by their ids. image_ids and path should be of same length.
         image_n (int, optional): number of images to select randomly. Can not be set together with image_ids
@@ -214,6 +222,7 @@ def static_loaders(
             get_key=True,
             neuron_ids=neuron_id,
             neuron_n=neuron_n,
+            exclude_neuron_n=exclude_neuron_n,
             neuron_base_seed=neuron_base_seed,
             image_ids=image_id,
             image_n=image_n,
@@ -239,6 +248,7 @@ def static_shared_loaders(
     tier=None,
     multi_match_ids=None,
     multi_match_n=None,
+    exclude_multi_match_n=0,
     multi_match_base_seed=None,
     image_ids=None,
     image_n=None,
@@ -262,6 +272,8 @@ def static_shared_loaders(
         tier (str, optional): tier is a placeholder to specify which set of images to pick for train, val, and test loader.
         multi_match_ids (list, optional): select neurons by their ids. neuron_ids and path should be of same length.
         multi_match_n (int, optional): number of neurons to select randomly. Can not be set together with multi_match_ids
+        exclude_multi_match_n (int): the first <exclude_multi_match_n> matched neurons will be excluded (given a multi_match_base_seed),
+                                then <multi_match_n> matched neurons will be drawn from the remaining neurons.
         multi_match_base_seed (float, optional): base seed for neuron selection. Get's multiplied by multi_match_n to obtain final seed
         image_ids (list, optional): select images by their ids. image_ids and path should be of same length.
         image_n (int, optional): number of images to select randomly. Can not be set together with image_ids
@@ -279,9 +291,10 @@ def static_shared_loaders(
     assert (
         len(paths) != 1
     ), "Only one dataset was specified in 'paths'. When using the 'static_shared_loaders', more than one dataset has to be passed."
-    assert any([multi_match_ids is None, all([multi_match_n is None, multi_match_base_seed is None])]), \
+    assert any([multi_match_ids is None, all([multi_match_n is None, multi_match_base_seed is None, exclude_multi_match_n==0])]), \
         "multi_match_ids can not be set at the same time with any other multi_match selection criteria"
-
+    assert any([exclude_multi_match_n==0, multi_match_base_seed is not None]),  \
+        "multi_match_base_seed must be set when exclude_multi_match_n is not 0"
     # Collect overlapping multi matches
     multi_unit_ids, per_data_set_ids, given_neuron_ids = [], [], []
     match_set = None
@@ -311,7 +324,9 @@ def static_shared_loaders(
         random_state = np.random.get_state()
         if multi_match_base_seed is not None:
             np.random.seed(multi_match_base_seed * multi_match_n) # avoid nesting by making seed dependent on number of neurons
-        match_subset = np.random.choice(match_set, size=multi_match_n, replace=False)
+        match_subset = np.random.choice(match_set, size=exclude_multi_match_n + multi_match_n, replace=False)[exclude_multi_match_n:]
+        assert len(match_subset) == multi_match_n, \
+            "After excluding {} neurons, there are only {} matched neurons left, not {}".format(exclude_multi_match_n, len(match_subset), multi_match_n)
         neuron_ids = [pdsi[np.isin(munit_ids, match_subset)] for munit_ids, pdsi in zip(multi_unit_ids, per_data_set_ids)]
         np.random.set_state(random_state)
     else:
