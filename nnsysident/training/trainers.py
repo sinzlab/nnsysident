@@ -39,6 +39,7 @@ def standard_trainer(
     cb=None,
     track_training=False,
     return_test_score=False,
+    detach_core=False,
     **kwargs
 ):
     """
@@ -73,7 +74,7 @@ def standard_trainer(
 
     """
 
-    def full_objective(model, dataloader, data_key, *args):
+    def full_objective(model, dataloader, data_key, *args, detach_core):
         """
 
         Args:
@@ -86,9 +87,7 @@ def standard_trainer(
 
         """
         loss_scale = np.sqrt(len(dataloader[data_key].dataset) / args[0].shape[0]) if scale_loss else 1.0
-        return loss_scale * criterion(model(args[0].to(device), data_key), args[1].to(device)) + model.regularizer(
-            data_key
-        )
+        return loss_scale * criterion(model(args[0].to(device), data_key, detach_core=detach_core), args[1].to(device)) + int(not detach_core) * model.core.regularizer() + model.readout.regularizer(data_key)
 
     ##### Model training ####################################################################################################
     model.to(device)
@@ -166,7 +165,7 @@ def standard_trainer(
             enumerate(LongCycler(dataloaders["train"])), total=n_iterations, desc="Epoch {}".format(epoch)
         ):
 
-            loss = full_objective(model, dataloaders["train"], data_key, *data)
+            loss = full_objective(model, dataloaders["train"], data_key, *data, detach_core=detach_core)
             loss.backward()
             if (batch_no + 1) % optim_step_count == 0:
                 optimizer.step()
