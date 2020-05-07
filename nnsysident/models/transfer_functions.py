@@ -5,7 +5,10 @@ import pandas as pd
 import datajoint as dj
 
 
-def core_transfer(model, trained_model_table, t_model_hash, t_dataset_hash, t_trainer_hash):
+def core_transfer(model, trained_model_table, trainer_config, t_model_hash, t_dataset_hash, t_trainer_hash):
+    assert 'detach_core' in trainer_config and trainer_config['detach_core'] is True, \
+        "When transferring the core, 'detach_core' in the 'trainer_config' must be set to True."
+
     # get all trained models corresponding to the combination of model, dataset and trainer
     restricted_trained_model_table = (trained_model_table &
                                       "model_hash = '{}'".format(t_model_hash) &

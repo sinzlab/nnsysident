@@ -121,6 +121,7 @@ class TrainedModelTransfer(TrainedModelBase):
         return definition
 
     def make(self, key):
+        print('Populating key: {}'.format(key))
         """
         Given key specifying configuration for dataloaders, model and trainer,
         trains the model and saves the trained model.
@@ -129,18 +130,19 @@ class TrainedModelTransfer(TrainedModelBase):
         fabrikant_name = self.user_table.get_current_user()
         seed = (self.seed_table & key).fetch1('seed')
 
-        # extract the transferfn so the key fits nnFabrik standards
+        # extract the transfer_fn and transfer_hash so the key fits nnFabrik standards
         transfer_fn = key.pop('transfer_fn')
-        transfer_config = key.pop('transfer_config')
-        assert 'detach_core' in key['trainer_config'] and key['trainer_config']['detach_core'] is True, \
-            ""
+        transfer_hash = key.pop('transfer_hash')
+
+        transfer_config = (Transfer & 'transfer_hash="{}"'.format(transfer_hash)).fetch1('transfer_config')
+        trainer_config = (Trainer & 'trainer_hash="{}"'.format(key['trainer_hash'])).fetch1('trainer_config')
 
         # load everything
         dataloaders, model, trainer = self.load_model(key, include_trainer=True, include_state_dict=False, seed=seed)
 
         # Conduct the transfer defined by the transfer function
         transfer_function = resolve_fn(transfer_fn, default_base=None)
-        transfer_function(model=model, trained_model_table=TrainedModel, **transfer_config)
+        transfer_function(model=model, trained_model_table=TrainedModel, trainer_config=trainer_config, **transfer_config)
 
         # define callback with pinging
         def call_back(**kwargs):
@@ -164,6 +166,7 @@ class TrainedModelTransfer(TrainedModelBase):
             comments.append((self.dataset_table & key).fetch1("dataset_comment"))
             key['comment'] = self.comment_delimitter.join(comments)
             key['transfer_fn'] = transfer_fn
+            key['transfer_hash'] = transfer_hash
             self.insert1(key)
 
             key['model_state'] = filepath
