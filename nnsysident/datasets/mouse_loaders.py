@@ -299,7 +299,8 @@ def static_shared_loaders(
     multi_unit_ids, per_data_set_ids, given_neuron_ids = [], [], []
     match_set = None
     for path in paths:
-        dat = FileTreeDataset(path, "responses")
+        data_key, dataloaders = static_loader(path=path, batch_size=100, get_key=True)
+        dat = dataloaders['train'].dataset
         multi_unit_ids.append(dat.neurons.multi_match_id)
         per_data_set_ids.append(dat.neurons.unit_ids)
         if match_set is None:
