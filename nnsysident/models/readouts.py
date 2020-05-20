@@ -1,5 +1,5 @@
 import torch
-
+import numpy as np
 from torch import nn
 from nnfabrik.utility.nn_helpers import get_module_output
 from torch.nn import Parameter
@@ -127,15 +127,18 @@ class DeterministicGaussian2d(nn.Module):
         bias (bool): adds a bias term
     """
 
-    def __init__(self, in_shape, outdims, bias, **kwargs):
+    def __init__(self, in_shape, outdims, bias, grid_mean_predictor=None, source_grid=None, **kwargs):
 
         super().__init__()
         self.in_shape = in_shape
         c, w, h = in_shape
         self.outdims = outdims
 
-        self.mu = Parameter(
-            data=torch.zeros(outdims, 2), requires_grad=True)
+        if grid_mean_predictor is None:
+            self._mu = Parameter(data=torch.zeros(outdims, 2), requires_grad=True)
+        else:
+            self.init_grid_predictor(source_grid=source_grid, **grid_mean_predictor)
+
         self.log_var = Parameter(
             data=torch.zeros(outdims, 2), requires_grad=True)
         self.grid = torch.nn.Parameter(
@@ -167,6 +170,36 @@ class DeterministicGaussian2d(nn.Module):
         # normalize to sum=1
         pdf = pdf / torch.sum(pdf, dim=(1, 2), keepdim=True)
         return pdf
+
+    @property
+    def mu(self):
+        if self._predicted_grid:
+            return self.mu_transform(self.source_grid.squeeze())#.view(*self.grid_shape)
+        else:
+            return self._mu
+
+    def init_grid_predictor(self, source_grid, hidden_features=20, hidden_layers=0, final_tanh=False):
+        self._original_grid = False
+        layers = [
+            nn.Linear(source_grid.shape[1], hidden_features if hidden_layers > 0 else 2)
+        ]
+
+        for i in range(hidden_layers):
+            layers.extend([
+                nn.ELU(),
+                nn.Linear(hidden_features, hidden_features if i < hidden_layers - 1 else 2)
+            ])
+
+        if final_tanh:
+            layers.append(
+                nn.Tanh()
+            )
+        self.mu_transform = nn.Sequential(*layers)
+
+        source_grid = source_grid - source_grid.mean(axis=0, keepdims=True)
+        source_grid = source_grid / np.abs(source_grid).max()
+        self.register_buffer('source_grid', torch.from_numpy(source_grid.astype(np.float32)))
+        self._predicted_grid = True
 
     def initialize(self):
         """
@@ -235,16 +268,32 @@ class DeterministicGaussian2d(nn.Module):
 
 
 class MultipleDeterministicgaussian2d(MultiReadout, torch.nn.ModuleDict):
-    def __init__(self, core, in_shape_dict, n_neurons_dict, bias, gamma_readout):
+    def __init__(self, core, in_shape_dict, n_neurons_dict, bias, gamma_readout, grid_mean_predictor, grid_mean_predictor_type, source_grids):
         # super init to get the _module attribute
         super(MultipleDeterministicgaussian2d, self).__init__()
-        for k in n_neurons_dict:
+
+
+
+        k0 = None
+        for i, k in enumerate(n_neurons_dict):
+            k0 = k0 or k
             in_shape = get_module_output(core, in_shape_dict[k])[1:]
             n_neurons = n_neurons_dict[k]
 
+            source_grid = None
+            if grid_mean_predictor is not None:
+                if grid_mean_predictor_type == 'cortex':
+                    source_grid = source_grids[k]
+                else:
+                    raise KeyError('grid mean predictor {} does not exist'.format(grid_mean_predictor_type))
+
             self.add_module(k, DeterministicGaussian2d(
-                in_shape,
-                n_neurons,
-                bias=bias)
+                in_shape=in_shape,
+                outdims=n_neurons,
+                bias=bias,
+                grid_mean_predictor=grid_mean_predictor,
+                source_grid=source_grid
+            )
                             )
         self.gamma_readout = gamma_readout
+

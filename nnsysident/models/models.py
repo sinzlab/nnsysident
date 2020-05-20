@@ -418,8 +418,9 @@ def se2d_deterministicgaussian2d(dataloaders,
                                                                 # readout args,
                                     readout_bias=True,
                                     gamma_readout=0.0019,
-
-                                    ):
+                                    grid_mean_predictor={'type': 'cortex', 'input_dimensions': 2, 'hidden_layers': 0,
+                                                      'hidden_features': 30, 'final_tanh': True},
+                                 ):
     """
     Model class of a SE2d core and a spatialXfeature (factorized) readout
     Args:
@@ -442,6 +443,37 @@ def se2d_deterministicgaussian2d(dataloaders,
         input_channels = [v[in_name][1] for v in session_shape_dict.values()]
 
     core_input_channels = list(input_channels.values())[0] if isinstance(input_channels, dict) else input_channels[0]
+
+    source_grids = None
+    grid_mean_predictor_type = None
+    if grid_mean_predictor is not None:
+        grid_mean_predictor = copy.deepcopy(grid_mean_predictor)
+        grid_mean_predictor_type = grid_mean_predictor.pop("type")
+        if grid_mean_predictor_type == "cortex":
+            input_dim = grid_mean_predictor.pop("input_dimensions", 2)
+            source_grids = {}
+            for k, v in dataloaders.items():
+                # real data
+                if v.dataset.neurons.animal_ids[0] != 0:
+                    source_grids[k] = v.dataset.neurons.cell_motor_coordinates[:, :input_dim]
+                # simulated data -> get random linear non-degenerate transform of true positions
+                else:
+                    source_grid_true = v.dataset.neurons.center[:, :input_dim]
+                    det = 0.0
+                    loops = 0
+                    grid_bias = np.random.rand(2) * 3
+                    while det < 5.0 and loops < 100:
+                        matrix = np.random.rand(2, 2) * 3
+                        det = np.linalg.det(matrix)
+                        loops += 1
+                    assert det > 5.0, "Did not find a non-degenerate matrix"
+                    source_grids[k] = np.add((matrix @ source_grid_true.T).T, grid_bias)
+        elif grid_mean_predictor_type == "shared":
+            pass
+        else:
+            raise ValueError('Grid mean predictor type {} not understood.'.format(grid_mean_predictor_type))
+
+
 
     set_random_seed(seed)
 
@@ -470,7 +502,10 @@ def se2d_deterministicgaussian2d(dataloaders,
                                             n_neurons_dict=n_neurons_dict,
                                             bias=readout_bias,
                                             gamma_readout=gamma_readout,
-                                            )
+                                            grid_mean_predictor=grid_mean_predictor,
+                                            grid_mean_predictor_type=grid_mean_predictor_type,
+                                            source_grids=source_grids
+                                              )
 
     # initializing readout bias to mean response
     if readout_bias and data_info is None:
