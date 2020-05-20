@@ -6,7 +6,7 @@ import copy
 
 from nnfabrik.utility.nn_helpers import get_module_output, set_random_seed, get_dims_for_loader_dict
 from .cores import SE2dCore
-from .readouts import MultipleFullGaussian2d, MultiplePointPooled2d, MultipleSpatialXFeatureLinear
+from .readouts import MultipleFullGaussian2d, MultiplePointPooled2d, MultipleSpatialXFeatureLinear, MultipleDeterministicgaussian2d
 from .utility import unpack_data_info
 
 
@@ -379,6 +379,97 @@ def se2d_spatialxfeaturelinear(dataloaders,
                                             bias=readout_bias,
                                             gamma_readout=gamma_readout,
                                             normalize=normalize
+                                            )
+
+    # initializing readout bias to mean response
+    if readout_bias and data_info is None:
+        for key, value in dataloaders.items():
+            _, targets = next(iter(value))
+            readout[key].bias.data = targets.mean(0)
+
+    model = Encoder(core, readout, elu_offset)
+
+    return model
+
+
+def se2d_deterministicgaussian2d(dataloaders,
+                                    seed,
+                                    elu_offset=0,
+                                    data_info=None,
+                                                                # core args
+                                    hidden_channels=64,
+                                    input_kern=9,
+                                    hidden_kern=7,
+                                    layers=4,
+                                    gamma_input=20.,
+                                    skip=0,
+                                    final_nonlinearity=True,
+                                    momentum=0.9,
+                                    pad_input=False,
+                                    batch_norm=True,
+                                    hidden_dilation=1,
+                                    laplace_padding=None,
+                                    input_regularizer='LaplaceL2norm',
+                                    stack=-1,
+                                    se_reduction=32,
+                                    n_se_blocks=0,
+                                    depth_separable=True,
+                                    linear=False,
+                                                                # readout args,
+                                    readout_bias=True,
+                                    gamma_readout=0.0019,
+
+                                    ):
+    """
+    Model class of a SE2d core and a spatialXfeature (factorized) readout
+    Args:
+    Returns: An initialized model which consists of model.core and model.readout
+    """
+
+    if data_info is not None:
+        n_neurons_dict, in_shapes_dict, input_channels = unpack_data_info(data_info)
+    else:
+        if "train" in dataloaders.keys():
+            dataloaders = dataloaders["train"]
+
+
+        # Obtain the named tuple fields from the first entry of the first dataloader in the dictionary
+        in_name, out_name = next(iter(list(dataloaders.values())[0]))._fields
+
+        session_shape_dict = get_dims_for_loader_dict(dataloaders)
+        n_neurons_dict = {k: v[out_name][1] for k, v in session_shape_dict.items()}
+        in_shapes_dict = {k: v[in_name] for k, v in session_shape_dict.items()}
+        input_channels = [v[in_name][1] for v in session_shape_dict.values()]
+
+    core_input_channels = list(input_channels.values())[0] if isinstance(input_channels, dict) else input_channels[0]
+
+    set_random_seed(seed)
+
+    core = SE2dCore(input_channels=core_input_channels,
+                    hidden_channels=hidden_channels,
+                    input_kern=input_kern,
+                    hidden_kern=hidden_kern,
+                    layers=layers,
+                    gamma_input=gamma_input,
+                    skip=skip,
+                    final_nonlinearity=final_nonlinearity,
+                    bias=False,
+                    momentum=momentum,
+                    pad_input=pad_input,
+                    batch_norm=batch_norm,
+                    hidden_dilation=hidden_dilation,
+                    laplace_padding=laplace_padding,
+                    input_regularizer=input_regularizer,
+                    stack=stack,
+                    se_reduction=se_reduction,
+                    n_se_blocks=n_se_blocks,
+                    depth_separable=depth_separable,
+                    linear=linear)
+
+    readout = MultipleDeterministicgaussian2d(core, in_shape_dict=in_shapes_dict,
+                                            n_neurons_dict=n_neurons_dict,
+                                            bias=readout_bias,
+                                            gamma_readout=gamma_readout,
                                             )
 
     # initializing readout bias to mean response
