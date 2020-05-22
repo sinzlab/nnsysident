@@ -127,7 +127,7 @@ class DeterministicGaussian2d(nn.Module):
         bias (bool): adds a bias term
     """
 
-    def __init__(self, in_shape, outdims, bias, grid_mean_predictor=None, source_grid=None, **kwargs):
+    def __init__(self, in_shape, outdims, bias, grid_mean_predictor=None, shared_features=None, source_grid=None,  **kwargs):
 
         super().__init__()
         self.in_shape = in_shape
@@ -144,7 +144,7 @@ class DeterministicGaussian2d(nn.Module):
         self.grid = torch.nn.Parameter(
             data=self.make_mask_grid(), requires_grad=False)
 
-        self.features = Parameter(torch.Tensor(1, c, 1, outdims))  # saliency  weights for each channel from core
+        self.initialize_features(**(shared_features or {}))
 
         if bias:
             bias = Parameter(torch.Tensor(outdims))
@@ -153,6 +153,18 @@ class DeterministicGaussian2d(nn.Module):
             self.register_parameter('bias', None)
 
         self.initialize()
+
+    @property
+    def shared_features(self):
+        return self._features
+
+    @property
+    def features(self):
+        if self._shared_features:
+            return self.scales * self._features[..., self.feature_sharing_index]
+        else:
+            return self._features
+
 
     def make_mask_grid(self):
         xx, yy = torch.meshgrid(
@@ -201,25 +213,59 @@ class DeterministicGaussian2d(nn.Module):
         self.register_buffer('source_grid', torch.from_numpy(source_grid.astype(np.float32)))
         self._predicted_grid = True
 
+    def initialize_features(self, match_ids=None, shared_features=None):
+        """
+        The internal attribute `_original_features` in this function denotes whether this instance of the FullGuassian2d
+        learns the original features (True) or if it uses a copy of the features from another instance of FullGaussian2d
+        via the `shared_features` (False). If it uses a copy, the feature_l1 regularizer for this copy will return 0
+        """
+        c, w, h = self.in_shape
+        self._original_features = True
+        if match_ids is not None:
+            assert self.outdims == len(match_ids)
+
+            n_match_ids = len(np.unique(match_ids))
+            if shared_features is not None:
+                assert shared_features.shape == (1, c, 1, n_match_ids), \
+                    f'shared features need to have shape (1, {c}, 1, {n_match_ids})'
+                self._features = shared_features
+                self._original_features = False
+            else:
+                self._features = Parameter(
+                    torch.Tensor(1, c, 1, n_match_ids))  # feature weights for each channel of the core
+            self.scales = Parameter(torch.Tensor(1, 1, 1, self.outdims))  # feature weights for each channel of the core
+            _, sharing_idx = np.unique(match_ids, return_inverse=True)
+            self.register_buffer('feature_sharing_index', torch.from_numpy(sharing_idx))
+            self._shared_features = True
+        else:
+            self._features = Parameter(
+                torch.Tensor(1, c, 1, self.outdims))  # feature weights for each channel of the core
+            self._shared_features = False
+
     def initialize(self):
         """
         initialize function initializes the mean, sigma for the Gaussian readout and features weights
         """
-        self.features.data.fill_(1 / self.in_shape[0])
-
+        self._features.data.fill_(1 / self.in_shape[0])
+        if self._shared_features:
+            self.scales.data.fill_(1.)
         if self.bias is not None:
             self.bias.data.fill_(0)
 
     def feature_l1(self, average=True):
         """
-        feature_l1 function returns the l1 regularization term either the mean or just the sum of weights
+        Returns the l1 regularization term either the mean or the sum of all weights
         Args:
             average(bool): if True, use mean of weights for regularization
+
         """
-        if average:
-            return self.features.abs().mean()
+        if self._original_features:
+            if average:
+                return self._features.abs().mean()
+            else:
+                return self._features.abs().sum()
         else:
-            return self.features.abs().sum()
+            return 0
 
     def variance_l1(self, average=True):
         """
@@ -268,11 +314,9 @@ class DeterministicGaussian2d(nn.Module):
 
 
 class MultipleDeterministicgaussian2d(MultiReadout, torch.nn.ModuleDict):
-    def __init__(self, core, in_shape_dict, n_neurons_dict, bias, gamma_readout, grid_mean_predictor, grid_mean_predictor_type, source_grids):
+    def __init__(self, core, in_shape_dict, n_neurons_dict, bias, gamma_readout, grid_mean_predictor, grid_mean_predictor_type, share_features, source_grids, shared_match_ids):
         # super init to get the _module attribute
         super(MultipleDeterministicgaussian2d, self).__init__()
-
-
 
         k0 = None
         for i, k in enumerate(n_neurons_dict):
@@ -287,13 +331,24 @@ class MultipleDeterministicgaussian2d(MultiReadout, torch.nn.ModuleDict):
                 else:
                     raise KeyError('grid mean predictor {} does not exist'.format(grid_mean_predictor_type))
 
+            if share_features:
+                shared_features = {
+                    'match_ids': shared_match_ids[k],
+                    'shared_features': None if i == 0 else self[k0].shared_features
+                }
+            else:
+                shared_features = None
+
             self.add_module(k, DeterministicGaussian2d(
                 in_shape=in_shape,
                 outdims=n_neurons,
                 bias=bias,
                 grid_mean_predictor=grid_mean_predictor,
+                shared_features=shared_features,
                 source_grid=source_grid
             )
                             )
         self.gamma_readout = gamma_readout
 
+    def regularizer(self, data_key):
+        return (self[data_key].feature_l1(average=False) + self[data_key].variance_l1(average=False)) * self.gamma_readout
