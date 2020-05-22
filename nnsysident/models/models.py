@@ -420,6 +420,7 @@ def se2d_deterministicgaussian2d(dataloaders,
                                     gamma_readout=0.0019,
                                     grid_mean_predictor={'type': 'cortex', 'input_dimensions': 2, 'hidden_layers': 0,
                                                       'hidden_features': 30, 'final_tanh': True},
+                                    share_features=False
                                  ):
     """
     Model class of a SE2d core and a spatialXfeature (factorized) readout
@@ -473,7 +474,15 @@ def se2d_deterministicgaussian2d(dataloaders,
         else:
             raise ValueError('Grid mean predictor type {} not understood.'.format(grid_mean_predictor_type))
 
+    shared_match_ids = None
+    if share_features:
+        shared_match_ids = {k: v.dataset.neurons.multi_match_id for k, v in dataloaders.items()}
+        all_multi_unit_ids = set(np.hstack(shared_match_ids.values()))
 
+        for match_id in shared_match_ids.values():
+            assert len(set(match_id) & all_multi_unit_ids) == len(
+                all_multi_unit_ids
+            ), "All multi unit IDs must be present in all datasets"
 
     set_random_seed(seed)
 
@@ -504,8 +513,11 @@ def se2d_deterministicgaussian2d(dataloaders,
                                             gamma_readout=gamma_readout,
                                             grid_mean_predictor=grid_mean_predictor,
                                             grid_mean_predictor_type=grid_mean_predictor_type,
-                                            source_grids=source_grids
+                                            source_grids=source_grids,
+                                            share_features=share_features,
+                                            shared_match_ids=shared_match_ids,
                                               )
+
 
     # initializing readout bias to mean response
     if readout_bias and data_info is None:
