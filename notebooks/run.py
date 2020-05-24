@@ -18,28 +18,24 @@ from nnsysident.tables.experiments import *
 
 ### Experiment
 
-experiment_name = 'Real, Direct, se2d_fullgaussian2d, 4-set'
-
-#remember to restrict to Seed()
-
-TrainedModel.progress(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name))
-
-TrainedModel.populate(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name),
-                      reserve_jobs=True,
-                      order="random",)
+# experiment_name = 'Real, Direct, se2d_spatialxfeaturelinear, 4-set'
+#
+# TrainedModel.progress(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name))
+#
+# TrainedModel.populate(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name),
+#                       reserve_jobs=True,
+#                       order="random",)
 
 ## Transfer Experiment
 
-# for experiment_name in ["SIM, core_transfer (sameNI), se2d_fullgaussian2d, 0-0-3 -> 0-0-3",
-#                         "SIM, core_transfer (sameNI), se2d_pointpooled, 0-0-3 -> 0-0-3",
-#                         "SIM, core_transfer (sameNI), se2d_spatialxfeaturelinear, 0-0-3 -> 0-0-3"]:
-#
-#     TrainedModelTransfer.progress(Seed * ExperimentsTransfer.Restrictions & 'seed=1' & 'experiment_name="{}"'.format(experiment_name))
-#
-#     TrainedModelTransfer.populate(Seed * ExperimentsTransfer.Restrictions & 'seed=1' & 'experiment_name="{}"'.format(experiment_name),
-#                           reserve_jobs=True,
-#                           order="random",)
+for experiment_name in ["Real, core_transfer (sameNI), se2d_fullgaussian2d, 4-set -> 4-set",
+                        "Real, core_transfer (sameNI), se2d_spatialxfeaturelinear, 4-set -> 4-set"]:
 
+    TrainedModelTransfer.progress(Seed * ExperimentsTransfer.Restrictions & 'seed=1' & 'experiment_name="{}"'.format(experiment_name))
+
+    TrainedModelTransfer.populate(Seed * ExperimentsTransfer.Restrictions & 'seed=1' & 'experiment_name="{}"'.format(experiment_name),
+                          reserve_jobs=True,
+                          order="random",)
 
 
 
