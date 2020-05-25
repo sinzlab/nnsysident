@@ -13,18 +13,19 @@ dj.config['schema_name'] = f"konstantin_nnsysident_{name}"
 from nnfabrik.utility.hypersearch import Bayesian
 from nnfabrik.main import *
 from nnsysident.tables.experiments import *
+from nnsysident.tables.scoring import OracleScore
 
 
 
 ### Experiment
 
-experiment_name = 'Real, Direct, se2d_fullgaussian2d, 20505-6-1'
-
-TrainedModel.progress(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name))
-
-TrainedModel.populate(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name),
-                      reserve_jobs=True,
-                      order="random",)
+# experiment_name = 'Real, Direct, se2d_fullgaussian2d, 20505-6-1'
+#
+# TrainedModel.progress(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name))
+#
+# TrainedModel.populate(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name),
+#                       reserve_jobs=True,
+#                       order="random",)
 
 ## Transfer Experiment
 
@@ -230,3 +231,5 @@ TrainedModel.populate(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experi
 #                     dataset_fabrikant='kklurz',
 #                     dataset_comment='multi_match_n={}, image_n={}'.format(dataset_config['multi_match_n'], dataset_config['image_n']),
 #                     skip_duplicates=True)
+
+OracleScore.populate(reserve_jobs=True)

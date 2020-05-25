@@ -38,6 +38,7 @@ services:
       - /var/sinz-shared/mouse/toliaslab/static:/notebooks/data
       - ./notebooks:/notebooks
       - ../ml-utils:/src/ml-utils
+      - ../nnfabrik:/src/nnfabrik
       - ../NIPS-System-Identification:/src/nips
       - ../nnsysident:/src/nnsysident
       - ../data_port:/src/data_port
