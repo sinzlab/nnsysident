@@ -29,7 +29,7 @@ def standard_trainer(
     patience=5,
     epoch=0,
     lr_init=0.005,  # early stopping args
-    max_iter=100,
+    max_iter=200,
     maximize=True,
     tolerance=1e-6,
     restore_best=True,

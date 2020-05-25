@@ -18,24 +18,23 @@ from nnsysident.tables.experiments import *
 
 ### Experiment
 
-# experiment_name = 'Real, Direct, se2d_spatialxfeaturelinear, 4-set'
-#
-# TrainedModel.progress(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name))
-#
-# TrainedModel.populate(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name),
-#                       reserve_jobs=True,
-#                       order="random",)
+experiment_name = 'Real, Direct, se2d_fullgaussian2d, 20505-6-1'
+
+TrainedModel.progress(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name))
+
+TrainedModel.populate(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name),
+                      reserve_jobs=True,
+                      order="random",)
 
 ## Transfer Experiment
 
-for experiment_name in ["Real, core_transfer (sameNI), se2d_fullgaussian2d, 4-set -> 4-set",
-                        "Real, core_transfer (sameNI), se2d_spatialxfeaturelinear, 4-set -> 4-set"]:
-
-    TrainedModelTransfer.progress(Seed * ExperimentsTransfer.Restrictions & 'seed=1' & 'experiment_name="{}"'.format(experiment_name))
-
-    TrainedModelTransfer.populate(Seed * ExperimentsTransfer.Restrictions & 'seed=1' & 'experiment_name="{}"'.format(experiment_name),
-                          reserve_jobs=True,
-                          order="random",)
+# for experiment_name in ["Real, core_transfer (animal), se2d_fullgaussian2d, 4-set -> 20457-5-9"]:
+#
+#     TrainedModelTransfer.progress(Seed * ExperimentsTransfer.Restrictions & 'seed=1' & 'experiment_name="{}"'.format(experiment_name))
+#
+#     TrainedModelTransfer.populate(Seed * ExperimentsTransfer.Restrictions & 'seed=1' & 'experiment_name="{}"'.format(experiment_name),
+#                           reserve_jobs=True,
+#                           order="random",)
 
 
 
