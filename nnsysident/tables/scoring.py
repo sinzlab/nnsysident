@@ -51,3 +51,11 @@ class OracleScore(ScoringTable):
     measure_attribute = "fraction_oracle"
     measure_function = staticmethod(get_fraction_oracles)
     function_kwargs = {}
+
+@schema
+class OracleScoreTransfer(ScoringTable):
+    trainedmodel_table = TrainedModelTransfer
+    measure_dataset = "test"
+    measure_attribute = "fraction_oracle"
+    measure_function = staticmethod(get_fraction_oracles)
+    function_kwargs = {}
