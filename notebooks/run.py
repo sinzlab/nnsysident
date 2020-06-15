@@ -27,27 +27,6 @@ for experiment_name in ["Real, Direct, se2d_fullgaussian2d, [cortex, ~features],
     TrainedModel.populate(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name),
                           reserve_jobs=True,
                           order="random",)
-#
-#
-# experiment_name = "Real, direct (RANDOM fixed core 128), se2d_fullgaussian2d, 20457-5-9"
-#
-# TrainedModel.progress(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name))
-#
-# TrainedModel.populate(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name),
-#                       reserve_jobs=True,
-#                       order="random",)
-
-
-
-
-
-# experiment_name = "Real, Direct, se2d_spatialxfeaturelinear, normalize=True, 4-set"
-#
-# TrainedModel.progress(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name))
-#
-# TrainedModel.populate(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name),
-#                       reserve_jobs=True,
-#                       order="random",)
 
 
 
