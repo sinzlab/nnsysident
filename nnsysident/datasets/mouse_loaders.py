@@ -45,10 +45,10 @@ def static_loader(
         areas (list, optional): the visual area.
         layers (list, optional): the layer from visual area.
         tier (str, optional): tier is a placeholder to specify which set of images to pick for train, val, and test loader.
-        neuron_ids (list, optional): select neurons by their ids. neuron_ids and path should be of same length.
+        neuron_ids (list, optional): select neurons by their ids.
         neuron_n (int, optional): number of neurons to select randomly. Can not be set together with neuron_ids
         neuron_base_seed (float, optional): base seed for neuron selection. Get's multiplied by neuron_n to obtain final seed
-        image_ids (list, optional): select images by their ids. image_ids and path should be of same length.
+        image_ids (list, optional): select images by their ids.
         image_n (int, optional): number of images to select randomly. Can not be set together with image_ids
         image_base_seed (float, optional): base seed for image selection. Get's multiplied by image_n to obtain final seed
         get_key (bool, optional): whether to return the data key, along with the dataloaders.
@@ -185,12 +185,12 @@ def static_loaders(
         areas (list, optional): the visual area.
         layers (list, optional): the layer from visual area.
         tier (str, optional): tier is a placeholder to specify which set of images to pick for train, val, and test loader.
-        neuron_ids (list, optional): select neurons by their ids. neuron_ids and path should be of same length.
+        neuron_ids (list, optional): List of lists of neuron_ids. Make sure the order is the same as in paths
         neuron_n (int, optional): number of neurons to select randomly. Can not be set together with neuron_ids
         exclude_neuron_n (int): the first <exclude_neuron_n> neurons will be excluded (given a neuron_base_seed),
                                 then <neuron_n> neurons will be drawn from the remaining neurons.
         neuron_base_seed (float, optional): base seed for neuron selection. Get's multiplied by neuron_n to obtain final seed
-        image_ids (list, optional): select images by their ids. image_ids and path should be of same length.
+        image_ids (list, optional): List of lists of image_ids. Make sure the order is the same as in paths
         image_n (int, optional): number of images to select randomly. Can not be set together with image_ids
         image_base_seed (float, optional): base seed for image selection. Get's multiplied by image_n to obtain final seed
         cuda (bool, optional): whether to place the data on gpu or not.
@@ -270,12 +270,12 @@ def static_shared_loaders(
         areas (list, optional): the visual area.
         layers (list, optional): the layer from visual area.
         tier (str, optional): tier is a placeholder to specify which set of images to pick for train, val, and test loader.
-        multi_match_ids (list, optional): select neurons by their ids. neuron_ids and path should be of same length.
+        multi_match_ids (list, optional): List of multi_match_ids according to which the respective neuron_ids are drawn for each dataset in paths
         multi_match_n (int, optional): number of neurons to select randomly. Can not be set together with multi_match_ids
         exclude_multi_match_n (int): the first <exclude_multi_match_n> matched neurons will be excluded (given a multi_match_base_seed),
                                 then <multi_match_n> matched neurons will be drawn from the remaining neurons.
         multi_match_base_seed (float, optional): base seed for neuron selection. Get's multiplied by multi_match_n to obtain final seed
-        image_ids (list, optional): select images by their ids. image_ids and path should be of same length.
+        image_ids (list, optional): List of lists of image_ids. Make sure the order is the same as in paths
         image_n (int, optional): number of images to select randomly. Can not be set together with image_ids
         image_base_seed (float, optional): base seed for image selection. Get's multiplied by image_n to obtain final seed
         cuda (bool, optional): whether to place the data on gpu or not.
