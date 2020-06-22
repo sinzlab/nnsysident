@@ -53,6 +53,7 @@ services:
     volumes:
       - ./notebooks/models:/notebooks/models
       - /var/sinz-shared/mouse/toliaslab/static:/notebooks/data
+      - /var/sinz-shared/monkey/toliaslab:/notebooks/data/monkey
       - ./notebooks:/notebooks
       - ../ml-utils:/src/ml-utils
       - ../nnfabrik:/src/nnfabrik
