@@ -1,5 +1,6 @@
 import warnings
 from functools import partial
+from collections import OrderedDict
 
 import numpy as np
 import torch
@@ -29,7 +30,7 @@ def standard_trainer(
     patience=5,
     epoch=0,
     lr_init=0.005,  # early stopping args
-    max_iter=100,
+    max_iter=200,
     maximize=True,
     tolerance=1e-6,
     restore_best=True,
@@ -74,6 +75,14 @@ def standard_trainer(
 
     """
 
+    # # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! HACK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # state_dict = 'models/f6cf96b1ed6bdbec448acbd2742f1c05.pth.tar'
+    # core_dict = OrderedDict([(k, v) for k, v in torch.load(state_dict).items() if k[0:5] == 'core.'])
+    # model.load_state_dict(core_dict, strict=False)
+    # print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! HACK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    # # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! HACK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
     def full_objective(model, dataloader, data_key, *args, detach_core):
         """
 
@@ -87,7 +96,8 @@ def standard_trainer(
 
         """
         loss_scale = np.sqrt(len(dataloader[data_key].dataset) / args[0].shape[0]) if scale_loss else 1.0
-        return loss_scale * criterion(model(args[0].to(device), data_key, detach_core=detach_core), args[1].to(device)) + int(not detach_core) * model.core.regularizer() + model.readout.regularizer(data_key)
+        regularizers = int(not detach_core) * model.core.regularizer() + model.readout.regularizer(data_key)
+        return loss_scale * criterion(model(args[0].to(device), data_key, detach_core=detach_core), args[1].to(device)) + regularizers
 
     ##### Model training ####################################################################################################
     model.to(device)
@@ -122,9 +132,9 @@ def standard_trainer(
 
     if track_training:
         tracker_dict = dict(
-            correlation=partial(get_correlations(), model, dataloaders["validation"], device=device, per_neuron=False),
+            correlation=partial(get_correlations, model, dataloaders["validation"], device=device, per_neuron=False),
             poisson_loss=partial(
-                get_poisson_loss(), model, dataloaders["validation"], device=device, per_neuron=False, avg=False
+                get_poisson_loss, model, dataloaders["validation"], device=device, per_neuron=False, avg=False
             ),
         )
         if hasattr(model, "tracked_values"):

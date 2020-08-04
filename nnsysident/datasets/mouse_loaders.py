@@ -72,6 +72,7 @@ def static_loader(
         "neuron_ids can not be set at the same time with any other neuron selection criteria"
     assert any([exclude_neuron_n==0, neuron_base_seed is not None]),  \
         "neuron_base_seed must be set when exclude_neuron_n is not 0"
+    data_key = path.split("static")[-1].split(".")[0].replace("preproc", "").replace("_nobehavior", "")
 
     if file_tree:
         dat = (
@@ -122,10 +123,11 @@ def static_loader(
     dat.transforms.extend(more_transforms)
 
     if return_test_sampler:
+        print('Returning only test sampler with repeats...')
         dataloader = get_oracle_dataloader(
             dat, oracle_condition=oracle_condition, file_tree=file_tree
         )
-        return dataloader
+        return (data_key, {'test': dataloader}) if get_key else {'test': dataloader}
 
     # subsample images
     dataloaders = {}
@@ -150,7 +152,6 @@ def static_loader(
         dataloaders[tier] = DataLoader(dat, sampler=sampler, batch_size=batch_size)
 
     # create the data_key for a specific data path
-    data_key = path.split("static")[-1].split(".")[0].replace("preproc", "").replace("_nobehavior", "")
     return (data_key, dataloaders) if get_key else dataloaders
 
 
@@ -174,6 +175,8 @@ def static_loaders(
     exclude="images",
     select_input_channel=None,
     file_tree=True,
+    return_test_sampler=False,
+    oracle_condition=None,
 ):
     """
     Returns a dictionary of dataloaders (i.e., trainloaders, valloaders, and testloaders) for >= 1 dataset(s).
@@ -232,6 +235,8 @@ def static_loaders(
             exclude=exclude,
             select_input_channel=select_input_channel,
             file_tree=file_tree,
+            return_test_sampler=return_test_sampler,
+            oracle_condition=oracle_condition
         )
         for k in dls:
             dls[k][data_key] = loaders[k]
@@ -258,6 +263,8 @@ def static_shared_loaders(
     include_behavior=False,
     exclude="images",
     select_input_channel=None,
+    return_test_sampler=False,
+    oracle_condition=None,
 ):
     """
     Returns a dictionary of dataloaders (i.e., trainloaders, valloaders, and testloaders) for >= 1 dataset(s).
@@ -360,6 +367,8 @@ def static_shared_loaders(
             exclude=exclude,
             select_input_channel=select_input_channel,
             file_tree=True,
+            return_test_sampler=return_test_sampler,
+            oracle_condition=oracle_condition
         )
         for k in dls:
             dls[k][data_key] = loaders[k]

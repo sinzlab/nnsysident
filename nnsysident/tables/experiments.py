@@ -23,6 +23,7 @@ schema = dj.schema(dj.config.get('schema_name', 'nnfabrik_core'))
 @schema
 class TrainedModel(TrainedModelBase):
     table_comment = "Trained models"
+    data_info_table = None
 
     class ModelStorage(TrainedModelBase.ModelStorage):
         storage = "minio_models"
@@ -91,6 +92,7 @@ class TrainedModelTransfer(TrainedModelBase):
     trainer_table = Trainer
     seed_table = Seed
     user_table = Fabrikant
+    data_info_table = None
     transfer_table = Transfer
 
     # delimitter to use when concatenating comments from model, dataset, and trainer tables
@@ -207,7 +209,7 @@ class ExperimentsTransfer(dj.Manual):
     # Table to keep track of collections of trained networks that form an experiment.
     # Instructions:
     # 1) Make an entry in Experiments with an experiment name and description
-    # 2) Insert all combinations of dataset, model and trainer for this experiment name in Experiments.Restrictions.
+    # 2) Insert all combinations of dataset, model, trainer and transfer for this experiment name in Experiments.Restrictions.
     # 2) Populate the TrainedModel table by restricting it with Experiments.Restrictions and the experiment name.
     # 3) After training, join this table with TrainedModel and restrict by experiment name to get your results
     definition = """
