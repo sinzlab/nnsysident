@@ -62,6 +62,7 @@ def se2d_fullgaussian2d(
     grid_mean_predictor={'type': 'cortex', 'input_dimensions': 2, 'hidden_layers': 0, 'hidden_features': 30, 'final_tanh': True},
     share_features=False,
     share_grid=False,
+    share_transform=False,
     init_noise=1e-3,
 ):
     """
@@ -183,6 +184,7 @@ def se2d_fullgaussian2d(
         source_grids=source_grids,
         share_features=share_features,
         share_grid=share_grid,
+        share_transform=share_transform,
         shared_match_ids=shared_match_ids,
         init_noise=init_noise,
     )
