@@ -136,8 +136,8 @@ class TrainedModelTransfer(TrainedModelBase):
         transfer_fn = key.pop('transfer_fn')
         transfer_hash = key.pop('transfer_hash')
 
-        transfer_config = (Transfer & 'transfer_hash="{}"'.format(transfer_hash)).fetch1('transfer_config')
-        trainer_config = (Trainer & 'trainer_hash="{}"'.format(key['trainer_hash'])).fetch1('trainer_config')
+        transfer_config = (self.transfer_table & 'transfer_hash="{}"'.format(transfer_hash)).fetch1('transfer_config')
+        trainer_config = (self.trainer_table & 'trainer_hash="{}"'.format(key['trainer_hash'])).fetch1('trainer_config')
 
         # load everything
         dataloaders, model, trainer = self.load_model(key, include_trainer=True, include_state_dict=False, seed=seed)

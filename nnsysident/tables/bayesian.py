@@ -1,12 +1,16 @@
 import warnings
 import datajoint as dj
+import tempfile
+import torch
 import os
+from collections import OrderedDict
 
 from nnfabrik.builder import resolve_fn, resolve_model, resolve_data, resolve_trainer, get_data, get_model, get_trainer, get_all_parts
 from nnfabrik.utility.dj_helpers import make_hash
 from nnfabrik.utility.nnf_helper import cleanup_numpy_scalar
 from nnfabrik.template import TrainedModelBase
 from nnfabrik.main import Fabrikant
+
 
 if not 'stores' in dj.config:
     dj.config['stores'] = {}
@@ -191,6 +195,7 @@ class ModelBayesian(dj.Manual):
 
         return get_model(model_fn, model_config, dataloaders, seed=seed)
 
+
 @schema
 class TrainedModelBayesian(TrainedModelBase):
     table_comment = "Trained models for bayesian searches"
@@ -201,3 +206,78 @@ class TrainedModelBayesian(TrainedModelBase):
     class ModelStorage(TrainedModelBase.ModelStorage):
         storage = "minio_models_bayesian"
 
+
+############################## Transfer ######################
+
+
+
+@schema
+class TrainedModelBayesianTransfer(TrainedModelBase):
+    table_comment = "Trained models with a transferred core for bayesian searches"
+    dataset_table = DatasetBayesian
+    model_table = ModelBayesian
+    seed_table = SeedBayesian
+    user_table = Fabrikant
+    data_info_table = None
+
+    # delimitter to use when concatenating comments from model, dataset, and trainer tables
+    comment_delimitter = '.'
+
+
+    class ModelStorage(TrainedModelBase.ModelStorage):
+        storage = "minio_models_bayesian"
+
+    def make(self, key):
+        """
+        Given key specifying configuration for dataloaders, model and trainer,
+        trains the model and saves the trained model.
+        """
+        # lookup the fabrikant corresponding to the current DJ user
+        fabrikant_name = self.user_table.get_current_user()
+        seed = (self.seed_table & key).fetch1('seed')
+
+        # load everything
+        dataloaders, model, trainer = self.load_model(key, include_trainer=True, include_state_dict=False, seed=seed)
+
+        # define callback with pinging
+        def call_back(**kwargs):
+            self.connection.ping()
+            self.call_back(**kwargs)
+
+        torch.save(model.state_dict(), 'before_transfer.tar')
+
+        # Transfer core
+        state_dict = (self.model_table & key).fetch1('model_config')['transfer_state_dict']
+        core_dict = OrderedDict([(k, v) for k, v in torch.load(state_dict).items() if k[0:5] == 'core.'])
+        model.load_state_dict(core_dict, strict=False)
+
+        torch.save(model.state_dict(), 'after_transfer.tar')
+
+        trainer_config = (self.trainer_table & key).fetch1('trainer_config')
+        if not 'detach_core' in trainer_config or trainer_config['detach_core'] is not True:
+            raise ValueError('detach_core must be set to True in the trainer_config.')
+
+        # model training
+        score, output, model_state = trainer(model=model, dataloaders=dataloaders, seed=seed, uid=key, cb=call_back)
+
+        torch.save(model.state_dict(), 'after_training.tar')
+
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            filename = make_hash(key) + '.pth.tar'
+            filepath = os.path.join(temp_dir, filename)
+            torch.save(model_state, filepath)
+
+            key['score'] = score
+            key['output'] = output
+            key['fabrikant_name'] = fabrikant_name
+            comments = []
+            comments.append((self.trainer_table & key).fetch1("trainer_comment"))
+            comments.append((self.model_table & key).fetch1("model_comment"))
+            comments.append((self.dataset_table & key).fetch1("dataset_comment"))
+            key['comment'] = self.comment_delimitter.join(comments)
+            self.insert1(key)
+
+            key['model_state'] = filepath
+
+            self.ModelStorage.insert1(key, ignore_extra_fields=True)
