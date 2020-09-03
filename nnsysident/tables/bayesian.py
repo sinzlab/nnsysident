@@ -244,14 +244,10 @@ class TrainedModelBayesianTransfer(TrainedModelBase):
             self.connection.ping()
             self.call_back(**kwargs)
 
-        torch.save(model.state_dict(), 'before_transfer.tar')
-
         # Transfer core
         state_dict = (self.model_table & key).fetch1('model_config')['transfer_state_dict']
         core_dict = OrderedDict([(k, v) for k, v in torch.load(state_dict).items() if k[0:5] == 'core.'])
         model.load_state_dict(core_dict, strict=False)
-
-        torch.save(model.state_dict(), 'after_transfer.tar')
 
         trainer_config = (self.trainer_table & key).fetch1('trainer_config')
         if not 'detach_core' in trainer_config or trainer_config['detach_core'] is not True:
@@ -259,9 +255,6 @@ class TrainedModelBayesianTransfer(TrainedModelBase):
 
         # model training
         score, output, model_state = trainer(model=model, dataloaders=dataloaders, seed=seed, uid=key, cb=call_back)
-
-        torch.save(model.state_dict(), 'after_training.tar')
-
 
         with tempfile.TemporaryDirectory() as temp_dir:
             filename = make_hash(key) + '.pth.tar'

@@ -311,6 +311,7 @@ def se2d_fullSXF(
     seed,
     elu_offset=0,
     data_info=None,
+    transfer_state_dict=None,
                                              # core args
     hidden_channels=64,
     input_kern=9,
@@ -338,7 +339,8 @@ def se2d_fullSXF(
     gamma_readout=0.0076,
     share_features=False,
 ):
-
+    if transfer_state_dict is not None:
+        print('Transfer state_dict given. This will only have an effect in the bayesian hypersearch. See: TrainedModelBayesianTransfer ')
     if data_info is not None:
         n_neurons_dict, in_shapes_dict, input_channels = unpack_data_info(data_info)
     else:
@@ -666,7 +668,11 @@ def taskdriven_fullgaussian2d(dataloaders,
                          gauss_type="full",
                          grid_mean_predictor={'type': 'cortex', 'input_dimensions': 2, 'hidden_layers': 0, 'hidden_features': 30, 'final_tanh': True},
                          share_features=False,
-                         share_grid=False):
+                         share_grid=False,
+                         share_transform=False,
+                         init_noise=1e-3,
+                         init_transform_scale=0.2,
+                              ):
 
     if data_info is not None:
         n_neurons_dict, in_shapes_dict, input_channels = unpack_data_info(data_info)
@@ -749,6 +755,9 @@ def taskdriven_fullgaussian2d(dataloaders,
         share_features=share_features,
         share_grid=share_grid,
         shared_match_ids=shared_match_ids,
+        share_transform=share_transform,
+        init_noise=init_noise,
+        init_transform_scale=init_transform_scale,
     )
 
     # initializing readout bias to mean response
