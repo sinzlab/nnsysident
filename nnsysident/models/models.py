@@ -6,7 +6,7 @@ import copy
 
 from nnfabrik.utility.nn_helpers import get_module_output, set_random_seed, get_dims_for_loader_dict
 from .cores import SE2dCore
-from .readouts import MultipleFullGaussian2d, MultiplePointPooled2d, MultipleSpatialXFeatureLinear, MultipleDeterministicgaussian2d, MultipleAffineFullGaussian2d, MultipleFullSXF
+from .readouts import MultipleFullGaussian2d, MultiplePointPooled2d, MultipleSpatialXFeatureLinear, MultipleDeterministicgaussian2d, MultipleFullSXF
 from .utility import unpack_data_info
 from mlutils.layers.cores import TransferLearningCore
 
@@ -33,6 +33,7 @@ def se2d_fullgaussian2d(
     seed,
     elu_offset=0,
     data_info=None,
+    transfer_state_dict=None,
                                              # core args
     hidden_channels=64,
     input_kern=9,
@@ -64,6 +65,7 @@ def se2d_fullgaussian2d(
     share_grid=False,
     share_transform=False,
     init_noise=1e-3,
+    init_transform_scale=0.2,
 ):
     """
     Model class of a SE2dCore (from nnsysident) and a MultipleFullGaussian2d (Multiple from nnsysident,
@@ -89,6 +91,8 @@ def se2d_fullgaussian2d(
             PointPooled2D in mlutils.layers.readouts
     Returns: An initialized model which consists of model.core and model.readout
     """
+    if transfer_state_dict is not None:
+        print('Transfer state_dict given. This will only have an effect in the bayesian hypersearch. See: TrainedModelBayesianTransfer ')
 
     if data_info is not None:
         n_neurons_dict, in_shapes_dict, input_channels = unpack_data_info(data_info)
@@ -187,6 +191,7 @@ def se2d_fullgaussian2d(
         share_transform=share_transform,
         shared_match_ids=shared_match_ids,
         init_noise=init_noise,
+        init_transform_scale=init_transform_scale,
     )
 
     # initializing readout bias to mean response
