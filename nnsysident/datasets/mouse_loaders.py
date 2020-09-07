@@ -374,3 +374,104 @@ def static_shared_loaders(
             dls[k][data_key] = loaders[k]
 
     return dls
+
+
+def mouse_allen_scene_loader(path=None,
+                             batch_size=None,
+                             seed=None,
+                             areas=None,
+                             imaging_depths=None,
+                             tier=None,
+                             specimen_ids=None,
+                             get_key=False,
+                             cuda=True,
+                             normalize=True,
+                             include_behavior=False,
+                             exclude='images',
+                             return_test_sampler=False,
+                             neuron_ids=None,
+                             select_input_channel=None,
+                             oracle_condition=None,
+                             ):
+    print(neuron_ids)
+    assert neuron_ids is None, 'neuron_ids not implemented yet'
+    assert select_input_channel is None, 'select_input_channel not implemented yet'
+
+    dat = FileTreeDataset(path, 'images', 'responses', 'behavior') if include_behavior else FileTreeDataset(path,
+                                                                                                                'images',
+                                                                                                                'responses')
+    # specify condition(s) for sampling neurons. If you want to sample specific neurons define conditions that would effect idx
+    conds = np.ones(len(dat.neurons.area), dtype=bool)
+    if areas is not None:
+        conds &= (np.isin(dat.neurons.area, areas))
+    if imaging_depths is not None:
+        conds &= (np.isin(dat.neurons.imaging_depth, imaging_depths))
+    if specimen_ids is not None:
+        conds &= (np.isin(dat.neurons.specimen_ids, specimen_ids))
+    idx = np.where(conds)[0]
+    more_transforms = [Subsample(idx), ToTensor(cuda)]
+    if normalize:
+        more_transforms.insert(0, NeuroNormalizer(dat, exclude=exclude))
+    if include_behavior:
+        more_transforms.insert(0, AddBehaviorAsChannels())
+    dat.transforms.extend(more_transforms)
+    if return_test_sampler:
+        assert False, 'Check that code before you run it'
+        dataloader = get_oracle_dataloader(dat, oracle_condition=oracle_condition, file_tree=True)
+        return dataloader
+    # subsample images
+    dataloaders = {}
+    keys = [tier] if tier else ['train', 'validation', 'test']
+    for tier in keys:
+        if seed is not None:
+            set_random_seed(seed)
+        # sample images
+        subset_idx = np.where(dat.trial_info.tiers == tier)[0]
+        sampler = SubsetRandomSampler(subset_idx) if tier == 'train' else SubsetSequentialSampler(subset_idx)
+        dataloaders[tier] = DataLoader(dat, sampler=sampler, batch_size=batch_size)
+    # create the data_key for a specific data path
+    data_key = path.split('allen')[-1].split(".")[0]
+    return (data_key, dataloaders) if get_key else dataloaders
+
+
+def mouse_allen_scene_loaders(paths,
+                         batch_size,
+                         seed=None,
+                         areas=None,
+                         imaging_depths=None,
+                         tier=None,
+                         specimen_ids=None,
+                         cuda=True,
+                         normalize=True,
+                         include_behavior=False,
+                         exclude= 'images',
+                         select_input_channel=None,
+                         ):
+    """
+    Returns a dictionary of dataloaders (i.e., trainloaders, valloaders, and testloaders) for >= 1 dataset(s).
+    Args:
+        paths (list): list of path(s) for the dataset(s)
+        batch_size (int): batch size.
+        seed (int, optional): random seed for images. Defaults to None.
+        areas (str, optional): the visual area. Defaults to 'V1'.
+        layers (str, optional): the layer from visual area. Defaults to 'L2/3'.
+        tier (str, optional): tier is a placeholder to specify which set of images to pick for train, val, and test loader. Defaults to None.
+        neuron_ids ([type], optional): select neurons by their ids. Defaults to None.
+        cuda (bool, optional): whether to place the data on gpu or not. Defaults to True.
+    Returns:
+        dict: dictionary of dictionaries where the first level keys are 'train', 'validation', and 'test', and second level keys are data_keys.
+    """
+    neuron_ids = specimen_ids if specimen_ids is not None else [None]
+    dls = OrderedDict({})
+    keys = [tier] if tier else ['train', 'validation', 'test']
+    for key in keys:
+        dls[key] = OrderedDict({})
+    for path, neuron_id in zip_longest(paths, neuron_ids, fillvalue=None):
+        data_key, loaders = mouse_allen_scene_loader(path, batch_size, seed=seed,
+                                                areas=areas, imaging_depths=imaging_depths, cuda=cuda,
+                                                tier=tier, get_key=True, neuron_ids=neuron_id,
+                                                normalize=normalize, include_behavior=include_behavior,
+                                                exclude=exclude, select_input_channel=select_input_channel)
+        for k in dls:
+            dls[k][data_key] = loaders[k]
+    return dls

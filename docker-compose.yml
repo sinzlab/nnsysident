@@ -42,6 +42,7 @@ services:
       - ../NIPS-System-Identification:/src/nips
       - ../nnsysident:/src/nnsysident
       - ../data_port:/src/data_port
+      - ../allenobs:/src/allenobs
       - /tmp/djcache:/cache
     env_file: .env
     runtime: nvidia
@@ -60,6 +61,7 @@ services:
       - ../NIPS-System-Identification:/src/nips
       - ../nnsysident:/src/nnsysident
       - ../data_port:/src/data_port
+      - ../allenobs:/src/allenobs
       - /tmp/djcache:/cache
     env_file: .env
     ports:
