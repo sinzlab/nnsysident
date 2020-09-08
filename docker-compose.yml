@@ -38,9 +38,11 @@ services:
       - /var/sinz-shared/mouse/toliaslab/static:/notebooks/data
       - ./notebooks:/notebooks
       - ../ml-utils:/src/ml-utils
+      - ../nnfabrik:/src/nnfabrik
       - ../NIPS-System-Identification:/src/nips
       - ../nnsysident:/src/nnsysident
       - ../data_port:/src/data_port
+      - ../allenobs:/src/allenobs
       - /tmp/djcache:/cache
     env_file: .env
     runtime: nvidia
@@ -52,12 +54,14 @@ services:
     volumes:
       - ./notebooks/models:/notebooks/models
       - /var/sinz-shared/mouse/toliaslab/static:/notebooks/data
+      - /var/sinz-shared/monkey/toliaslab:/notebooks/data/monkey
       - ./notebooks:/notebooks
       - ../ml-utils:/src/ml-utils
       - ../nnfabrik:/src/nnfabrik
       - ../NIPS-System-Identification:/src/nips
       - ../nnsysident:/src/nnsysident
       - ../data_port:/src/data_port
+      - ../allenobs:/src/allenobs
       - /tmp/djcache:/cache
     env_file: .env
     ports:
