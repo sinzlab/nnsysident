@@ -822,3 +822,86 @@ def taskdriven_fullgaussian2d(
     model = Encoder(core, readout, elu_offset)
 
     return model
+
+
+def taskdriven_fullSXF(
+    dataloaders,
+    seed,
+    elu_offset=0,
+    data_info=None,
+    # core args
+    tl_model_name="vgg16",
+    layers=4,
+    pretrained=True,
+    final_batchnorm=True,
+    final_nonlinearity=True,
+    momentum=0.1,
+    fine_tune=False,
+    # readout args
+    init_noise=4.1232e-05,
+    normalize=False,
+    readout_bias=True,
+    gamma_readout=0.0076,
+    share_features=False,
+):
+
+    if data_info is not None:
+        n_neurons_dict, in_shapes_dict, input_channels = unpack_data_info(data_info)
+    else:
+        if "train" in dataloaders.keys():
+            dataloaders = dataloaders["train"]
+
+        # Obtain the named tuple fields from the first entry of the first dataloader in the dictionary
+        in_name, out_name = next(iter(list(dataloaders.values())[0]))._fields
+
+        session_shape_dict = get_dims_for_loader_dict(dataloaders)
+        n_neurons_dict = {k: v[out_name][1] for k, v in session_shape_dict.items()}
+        in_shapes_dict = {k: v[in_name] for k, v in session_shape_dict.items()}
+        input_channels = [v[in_name][1] for v in session_shape_dict.values()]
+
+    core_input_channels = list(input_channels.values())[0] if isinstance(input_channels, dict) else input_channels[0]
+
+    shared_match_ids = None
+    if share_features:
+        shared_match_ids = {k: v.dataset.neurons.multi_match_id for k, v in dataloaders.items()}
+        all_multi_unit_ids = set(np.hstack(shared_match_ids.values()))
+
+        for match_id in shared_match_ids.values():
+            assert len(set(match_id) & all_multi_unit_ids) == len(
+                all_multi_unit_ids
+            ), "All multi unit IDs must be present in all datasets"
+
+    set_random_seed(seed)
+
+    core = TransferLearningCore(
+        input_channels=core_input_channels,
+        tl_model_name=tl_model_name,
+        layers=layers,
+        pretrained=pretrained,
+        final_batchnorm=final_batchnorm,
+        final_nonlinearity=final_nonlinearity,
+        momentum=momentum,
+        fine_tune=fine_tune,
+    )
+
+    readout = MultipleFullSXF(
+        core,
+        in_shape_dict=in_shapes_dict,
+        n_neurons_dict=n_neurons_dict,
+        init_noise=init_noise,
+        bias=readout_bias,
+        gamma_readout=gamma_readout,
+        normalize=normalize,
+        share_features=share_features,
+        shared_match_ids=shared_match_ids,
+    )
+
+    # initializing readout bias to mean response
+    if readout_bias and data_info is None:
+        for key, value in dataloaders.items():
+            _, targets = next(iter(value))
+            readout[key].bias.data = targets.mean(0)
+
+    model = Encoder(core, readout, elu_offset)
+
+    return model
