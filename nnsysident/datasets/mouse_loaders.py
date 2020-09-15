@@ -6,7 +6,7 @@ from torch.utils.data.sampler import SubsetRandomSampler
 
 from nnfabrik.utility.nn_helpers import set_random_seed
 from mlutils.data.datasets import StaticImageSet, FileTreeDataset
-from mlutils.data.transforms import Subsample, ToTensor, NeuroNormalizer, AddBehaviorAsChannels, SelectInputChannel
+from mlutils.data.transforms import Subsample, ToTensor, NeuroNormalizer, AddBehaviorAsChannels, SelectInputChannel, ScaleInputs
 from mlutils.data.samplers import SubsetSequentialSampler
 from .utility import get_oracle_dataloader
 from dataport.bcm.static import fetch_non_existing_data
@@ -35,6 +35,7 @@ def static_loader(
     file_tree=True,
     return_test_sampler=False,
     oracle_condition=None,
+    scale=None,
 ):
     """
     returns a single data loader
@@ -120,6 +121,9 @@ def static_loader(
     if select_input_channel is not None:
         more_transforms.insert(0, SelectInputChannel(select_input_channel))
 
+    if scale is not None:
+        more_transforms.insert(0, ScaleInputs(scale=scale))
+
     dat.transforms.extend(more_transforms)
 
     if return_test_sampler:
@@ -177,6 +181,7 @@ def static_loaders(
     file_tree=True,
     return_test_sampler=False,
     oracle_condition=None,
+    scale=None,
 ):
     """
     Returns a dictionary of dataloaders (i.e., trainloaders, valloaders, and testloaders) for >= 1 dataset(s).
@@ -236,7 +241,8 @@ def static_loaders(
             select_input_channel=select_input_channel,
             file_tree=file_tree,
             return_test_sampler=return_test_sampler,
-            oracle_condition=oracle_condition
+            oracle_condition=oracle_condition,
+            scale=scale
         )
         for k in dls:
             dls[k][data_key] = loaders[k]
