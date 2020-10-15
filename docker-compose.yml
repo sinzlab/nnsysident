@@ -6,8 +6,6 @@ services:
       - ./notebooks/models:/notebooks/models
       - $HOME/data/static:/notebooks/data
       - ./notebooks:/notebooks
-      - ../ml-utils:/src/ml-utils
-      - ../nnfabrik:/src/nnfabrik
       - ../NIPS-System-Identification:/src/nips
       - ../nnsysident:/src/nnsysident
       - ../data_port:/src/data_port
@@ -22,8 +20,6 @@ services:
       - ./notebooks/models:/notebooks/models
       - $HOME/data/static:/notebooks/data
       - ./notebooks:/notebooks
-      - ../ml-utils:/src/ml-utils
-      - ../nnfabrik:/src/nnfabrik
       - ../NIPS-System-Identification:/src/nips
       - ../nnsysident:/src/nnsysident
       - ../data_port:/src/data_port
@@ -37,8 +33,6 @@ services:
       - ./notebooks/models:/notebooks/models
       - /var/sinz-shared/mouse/toliaslab/static:/notebooks/data
       - ./notebooks:/notebooks
-      - ../ml-utils:/src/ml-utils
-      - ../nnfabrik:/src/nnfabrik
       - ../NIPS-System-Identification:/src/nips
       - ../nnsysident:/src/nnsysident
       - ../data_port:/src/data_port
@@ -56,8 +50,6 @@ services:
       - /var/sinz-shared/mouse/toliaslab/static:/notebooks/data
       - /var/sinz-shared/monkey/toliaslab:/notebooks/data/monkey
       - ./notebooks:/notebooks
-      - ../ml-utils:/src/ml-utils
-      - ../nnfabrik:/src/nnfabrik
       - ../NIPS-System-Identification:/src/nips
       - ../nnsysident:/src/nnsysident
       - ../data_port:/src/data_port

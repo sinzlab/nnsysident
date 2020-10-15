@@ -1,16 +1,10 @@
 import datajoint as dj
-import torch
-import os
-import numpy as np
-
 from .experiments import TrainedModel, TrainedModelTransfer
 from ..utility.measures import get_fraction_oracles
 
 from nnfabrik.utility.dj_helpers import CustomSchema
 from nnfabrik.builder import get_data
 from nnfabrik.template import SummaryScoringBase
-
-from ..utility.measures import get_oracles, get_repeats, get_FEV, get_explainable_var, get_correlations, get_poisson_loss, get_avg_correlations
 
 schema = CustomSchema(dj.config.get('schema_name', 'nnfabrik_core'))
 
@@ -44,6 +38,7 @@ class ScoringTable(SummaryScoringBase):
         key[self.measure_attribute] = value
         self.insert1(key, ignore_extra_fields=True)
 
+
 @schema
 class OracleScore(ScoringTable):
     trainedmodel_table = TrainedModel
@@ -51,6 +46,7 @@ class OracleScore(ScoringTable):
     measure_attribute = "fraction_oracle"
     measure_function = staticmethod(get_fraction_oracles)
     function_kwargs = {}
+
 
 @schema
 class OracleScoreTransfer(ScoringTable):

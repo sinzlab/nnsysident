@@ -5,7 +5,7 @@ import torch
 import os
 from collections import OrderedDict
 
-from nnfabrik.builder import resolve_fn, resolve_model, resolve_data, resolve_trainer, get_data, get_model, get_trainer, get_all_parts
+from nnfabrik.builder import resolve_model, resolve_data, get_data, get_model
 from nnfabrik.utility.dj_helpers import make_hash
 from nnfabrik.utility.nnf_helper import cleanup_numpy_scalar
 from nnfabrik.template import TrainedModelBase
@@ -205,10 +205,6 @@ class TrainedModelBayesian(TrainedModelBase):
 
     class ModelStorage(TrainedModelBase.ModelStorage):
         storage = "minio_models_bayesian"
-
-
-############################## Transfer ######################
-
 
 
 @schema

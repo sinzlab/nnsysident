@@ -1,4 +1,3 @@
-import os
 import datajoint as dj
 import tempfile
 import torch
@@ -82,7 +81,6 @@ class Transfer(dj.Manual):
             self.insert1(key)
 
         return key
-
 
 
 @schema

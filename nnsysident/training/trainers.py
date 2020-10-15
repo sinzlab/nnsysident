@@ -1,14 +1,10 @@
-import warnings
 from functools import partial
-from collections import OrderedDict
-
 import numpy as np
 import torch
 from tqdm import tqdm
 
-from mlutils.measures import *
-from mlutils import measures as mlmeasures
-from mlutils.training import early_stopping, MultipleObjectiveTracker, eval_state, cycle_datasets, Exhauster, LongCycler
+from neuralpredictors import measures as mlmeasures
+from neuralpredictors.training import early_stopping, MultipleObjectiveTracker, LongCycler
 from nnfabrik.utility.nn_helpers import set_random_seed
 
 from ..utility import measures
@@ -74,14 +70,6 @@ def standard_trainer(
     Returns:
 
     """
-
-    # # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! HACK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    # state_dict = 'models/f6cf96b1ed6bdbec448acbd2742f1c05.pth.tar'
-    # core_dict = OrderedDict([(k, v) for k, v in torch.load(state_dict).items() if k[0:5] == 'core.'])
-    # model.load_state_dict(core_dict, strict=False)
-    # print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! HACK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-    # # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! HACK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 
     def full_objective(model, dataloader, data_key, *args, detach_core):
         """

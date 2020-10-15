@@ -1,8 +1,6 @@
-from collections import OrderedDict, Iterable
+from collections import OrderedDict
 import torch
-from torch import nn as nn
 import pandas as pd
-import datajoint as dj
 
 
 def core_transfer(model, trained_model_table, trainer_config, t_model_hash, t_dataset_hash, t_trainer_hash):
