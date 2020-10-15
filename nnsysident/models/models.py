@@ -24,7 +24,7 @@ class Encoder(nn.Module):
             x = self.readout(x, data_key=data_key, sample=kwargs["sample"])
         else:
             x = self.readout(x, data_key=data_key)
-        return nn.F.elu(x + self.offset) + 1
+        return nn.functional.elu(x + self.offset) + 1
 
 
 def se2d_fullgaussian2d(
