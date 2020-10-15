@@ -5,7 +5,7 @@ import copy
 from nnfabrik.utility.nn_helpers import set_random_seed, get_dims_for_loader_dict
 from neuralpredictors.layers.readouts import MultipleFullGaussian2d, MultiplePointPooled2d, \
     MultipleSpatialXFeatureLinear, MultipleFullSXF
-from nnsysident.utility.data_helpers import unpack_data_info
+from ..utility.data_helpers import unpack_data_info
 from neuralpredictors.layers.cores import TransferLearningCore, SE2dCore
 
 

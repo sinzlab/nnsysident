@@ -8,7 +8,7 @@ from nnfabrik.utility.nn_helpers import set_random_seed
 from neuralpredictors.data.datasets import StaticImageSet, FileTreeDataset
 from neuralpredictors.data.transforms import Subsample, ToTensor, NeuroNormalizer, AddBehaviorAsChannels, SelectInputChannel
 from neuralpredictors.data.samplers import SubsetSequentialSampler
-from nnsysident.utility.data_helpers import get_oracle_dataloader
+from ..utility.data_helpers import get_oracle_dataloader
 from dataport.bcm.static import fetch_non_existing_data
 
 
