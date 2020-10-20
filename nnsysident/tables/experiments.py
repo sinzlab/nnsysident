@@ -6,8 +6,8 @@ from nnfabrik.template import TrainedModelBase
 from nnfabrik.main import *
 from nnfabrik.builder import resolve_fn
 
-if not 'stores' in dj.config:
-    dj.config['stores'] = {}
+if not "stores" in dj.config:
+    dj.config["stores"] = {}
 dj.config["stores"]["minio_models"] = {
     "protocol": "s3",
     "endpoint": os.environ["MINIO_ENDPOINT"],
@@ -17,7 +17,8 @@ dj.config["stores"]["minio_models"] = {
     "secret_key": os.environ["MINIO_SECRET_KEY"],
 }
 
-schema = dj.schema(dj.config.get('schema_name', 'nnfabrik_core'))
+schema = dj.schema(dj.config.get("schema_name", "nnfabrik_core"))
+
 
 @schema
 class TrainedModel(TrainedModelBase):
@@ -42,7 +43,9 @@ class Transfer(dj.Manual):
     transfer_ts=CURRENT_TIMESTAMP:   timestamp      # UTZ timestamp at time of insertion
     """
 
-    def add_entry(self, transfer_fn, transfer_config, transfer_fabrikant=None, transfer_comment='', skip_duplicates=False):
+    def add_entry(
+        self, transfer_fn, transfer_config, transfer_fabrikant=None, transfer_comment="", skip_duplicates=False
+    ):
         """
         Add a new entry to the transfer.
 
@@ -58,25 +61,30 @@ class Transfer(dj.Manual):
             key - key in the table corresponding to the entry.
         """
         try:
-            resolve_fn(transfer_fn, 'transfer')
+            resolve_fn(transfer_fn, "transfer")
         except (NameError, TypeError) as e:
-            warnings.warn(str(e) + '\nTable entry rejected')
+            warnings.warn(str(e) + "\nTable entry rejected")
             return
 
         if transfer_fabrikant is None:
             transfer_fabrikant = Fabrikant.get_current_user()
 
         transfer_hash = make_hash(transfer_config)
-        key = dict(transfer_fn=transfer_fn, transfer_hash=transfer_hash, transfer_config=transfer_config,
-                   transfer_fabrikant=transfer_fabrikant, transfer_comment=transfer_comment)
+        key = dict(
+            transfer_fn=transfer_fn,
+            transfer_hash=transfer_hash,
+            transfer_config=transfer_config,
+            transfer_fabrikant=transfer_fabrikant,
+            transfer_comment=transfer_comment,
+        )
 
         existing = self.proj() & key
         if existing:
             if skip_duplicates:
-                warnings.warn('Corresponding entry found. Skipping...')
+                warnings.warn("Corresponding entry found. Skipping...")
                 key = (self & (existing)).fetch1()
             else:
-                raise ValueError('Corresponding entry already exists')
+                raise ValueError("Corresponding entry already exists")
         else:
             self.insert1(key)
 
@@ -94,7 +102,7 @@ class TrainedModelTransfer(TrainedModelBase):
     transfer_table = Transfer
 
     # delimitter to use when concatenating comments from model, dataset, and trainer tables
-    comment_delimitter = '.'
+    comment_delimitter = "."
 
     # table level comment
     table_comment = "Trained models from transfer experiments"
@@ -117,32 +125,36 @@ class TrainedModelTransfer(TrainedModelBase):
         output:                            longblob     # trainer object's output
         ->[nullable] self.user_table
         trainedmodel_ts=CURRENT_TIMESTAMP: timestamp    # UTZ timestamp at time of insertion
-        """.format(table_comment=self.table_comment)
+        """.format(
+            table_comment=self.table_comment
+        )
         return definition
 
     def make(self, key):
-        print('Populating key: {}'.format(key))
+        print("Populating key: {}".format(key))
         """
         Given key specifying configuration for dataloaders, model and trainer,
         trains the model and saves the trained model.
         """
         # lookup the fabrikant corresponding to the current DJ user
         fabrikant_name = self.user_table.get_current_user()
-        seed = (self.seed_table & key).fetch1('seed')
+        seed = (self.seed_table & key).fetch1("seed")
 
         # extract the transfer_fn and transfer_hash so the key fits nnFabrik standards
-        transfer_fn = key.pop('transfer_fn')
-        transfer_hash = key.pop('transfer_hash')
+        transfer_fn = key.pop("transfer_fn")
+        transfer_hash = key.pop("transfer_hash")
 
-        transfer_config = (self.transfer_table & 'transfer_hash="{}"'.format(transfer_hash)).fetch1('transfer_config')
-        trainer_config = (self.trainer_table & 'trainer_hash="{}"'.format(key['trainer_hash'])).fetch1('trainer_config')
+        transfer_config = (self.transfer_table & 'transfer_hash="{}"'.format(transfer_hash)).fetch1("transfer_config")
+        trainer_config = (self.trainer_table & 'trainer_hash="{}"'.format(key["trainer_hash"])).fetch1("trainer_config")
 
         # load everything
         dataloaders, model, trainer = self.load_model(key, include_trainer=True, include_state_dict=False, seed=seed)
 
         # Conduct the transfer defined by the transfer function
         transfer_function = resolve_fn(transfer_fn, default_base=None)
-        transfer_function(model=model, trained_model_table=TrainedModel, trainer_config=trainer_config, **transfer_config)
+        transfer_function(
+            model=model, trained_model_table=TrainedModel, trainer_config=trainer_config, **transfer_config
+        )
 
         # define callback with pinging
         def call_back(**kwargs):
@@ -153,23 +165,23 @@ class TrainedModelTransfer(TrainedModelBase):
         score, output, model_state = trainer(model=model, dataloaders=dataloaders, seed=seed, uid=key, cb=call_back)
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            filename = make_hash(key) + '.pth.tar'
+            filename = make_hash(key) + ".pth.tar"
             filepath = os.path.join(temp_dir, filename)
             torch.save(model_state, filepath)
 
-            key['score'] = score
-            key['output'] = output
-            key['fabrikant_name'] = fabrikant_name
+            key["score"] = score
+            key["output"] = output
+            key["fabrikant_name"] = fabrikant_name
             comments = []
             comments.append((self.trainer_table & key).fetch1("trainer_comment"))
             comments.append((self.model_table & key).fetch1("model_comment"))
             comments.append((self.dataset_table & key).fetch1("dataset_comment"))
-            key['comment'] = self.comment_delimitter.join(comments)
-            key['transfer_fn'] = transfer_fn
-            key['transfer_hash'] = transfer_hash
+            key["comment"] = self.comment_delimitter.join(comments)
+            key["transfer_fn"] = transfer_fn
+            key["transfer_hash"] = transfer_hash
             self.insert1(key)
 
-            key['model_state'] = filepath
+            key["model_state"] = filepath
 
             self.ModelStorage.insert1(key, ignore_extra_fields=True)
 
@@ -201,6 +213,7 @@ class Experiments(dj.Manual):
         ---
         experiment_restriction_ts=CURRENT_TIMESTAMP:   timestamp      # UTZ timestamp at time of insertion
         """
+
 
 @schema
 class ExperimentsTransfer(dj.Manual):

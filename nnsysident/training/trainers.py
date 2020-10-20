@@ -16,7 +16,7 @@ def standard_trainer(
     dataloaders,
     seed,
     avg_loss=False,
-    scale_loss=True,  # trainer args
+    scale_loss=True,
     loss_function="PoissonLoss",
     stop_function="get_correlations",
     loss_accum_batch_n=None,
@@ -25,14 +25,14 @@ def standard_trainer(
     interval=1,
     patience=5,
     epoch=0,
-    lr_init=0.005,  # early stopping args
+    lr_init=0.005,
     max_iter=200,
     maximize=True,
     tolerance=1e-6,
     restore_best=True,
     lr_decay_steps=3,
     lr_decay_factor=0.3,
-    min_lr=0.0001,  # lr scheduler args
+    min_lr=0.0001,
     cb=None,
     track_training=False,
     return_test_score=False,
@@ -42,29 +42,29 @@ def standard_trainer(
     """
 
     Args:
-        model:
-        dataloaders:
-        seed:
-        avg_loss:
-        scale_loss:
-        loss_function:
-        stop_function:
-        loss_accum_batch_n:
-        device:
-        verbose:
-        interval:
-        patience:
-        epoch:
-        lr_init:
-        max_iter:
-        maximize:
-        tolerance:
-        restore_best:
-        lr_decay_steps:
-        lr_decay_factor:
-        min_lr:
-        cb:
-        track_training:
+        model: model to be trained
+        dataloaders: dataloaders containing the data to train the model with
+        seed: random seed
+        avg_loss: whether to average (or sum) the loss over a batch
+        scale_loss: whether to scale the loss according to the size of the dataset
+        loss_function: loss function to use
+        stop_function: the function (metric) that is used to determine the end of the training in early stopping
+        loss_accum_batch_n: number of batches to accumulate the loss over
+        device: device to run the training on
+        verbose: whether to print out a message for each optimizer step
+        interval: interval at which objective is evaluated to consider early stopping
+        patience: number of times the objective is allowed to not become better before the iterator terminates
+        epoch: starting epoch
+        lr_init: initial learning rate
+        max_iter: maximum number of training iterations
+        maximize: whether to maximize or minimize the objective function
+        tolerance: tolerance for early stopping
+        restore_best: whether to restore the model to the best state after early stopping
+        lr_decay_steps: how many times to decay the learning rate after no improvement
+        lr_decay_factor: factor to decay the learning rate with
+        min_lr: minimum learning rate
+        cb: whether to execute callback function
+        track_training: whether to track and print out the training progress
         **kwargs:
 
     Returns:
@@ -72,20 +72,13 @@ def standard_trainer(
     """
 
     def full_objective(model, dataloader, data_key, *args, detach_core):
-        """
 
-        Args:
-            model:
-            dataloader:
-            data_key:
-            *args:
-
-        Returns:
-
-        """
         loss_scale = np.sqrt(len(dataloader[data_key].dataset) / args[0].shape[0]) if scale_loss else 1.0
         regularizers = int(not detach_core) * model.core.regularizer() + model.readout.regularizer(data_key)
-        return loss_scale * criterion(model(args[0].to(device), data_key, detach_core=detach_core), args[1].to(device)) + regularizers
+        return (
+            loss_scale * criterion(model(args[0].to(device), data_key, detach_core=detach_core), args[1].to(device))
+            + regularizers
+        )
 
     ##### Model training ####################################################################################################
     model.to(device)

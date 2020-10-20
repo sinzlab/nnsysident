@@ -3,8 +3,12 @@ from torch import nn
 import copy
 
 from nnfabrik.utility.nn_helpers import set_random_seed, get_dims_for_loader_dict
-from neuralpredictors.layers.readouts import MultipleFullGaussian2d, MultiplePointPooled2d, \
-    MultipleSpatialXFeatureLinear, MultipleFullSXF
+from neuralpredictors.layers.readouts import (
+    MultipleFullGaussian2d,
+    MultiplePointPooled2d,
+    MultipleSpatialXFeatureLinear,
+    MultipleFullSXF,
+)
 from ..utility.data_helpers import unpack_data_info
 from neuralpredictors.layers.cores import TransferLearningCore, SE2dCore
 
@@ -73,8 +77,7 @@ def se2d_fullgaussian2d(
     init_transform_scale=0.2,
 ):
     """
-    Model class of a SE2dCore (from nnsysident) and a MultipleFullGaussian2d (Multiple from nnsysident,
-    readout from neuralpredictors)
+    Model class of a SE2dCore and a Gaussian readout)
     Args:
         dataloaders: a dictionary of dataloaders, one loader per session
             in the format {'data_key': dataloader object, .. }
@@ -92,8 +95,16 @@ def se2d_fullgaussian2d(
         share_features: whether to share features between readouts. This requires that the datasets
             have the properties `neurons.multi_match_id` which are used for matching. Every dataset
             has to have all these ids and cannot have any more.
-        all other args: See Documentation of Stacked2dCore in neuralpredictors.layers.cores and
-            PointPooled2D in neuralpredictors.layers.readouts
+        share_grid: whether to share the grid between neurons. This requires that the datasets
+            have the properties `neurons.multi_match_id` which are used for matching. Every dataset
+            has to have all these ids and cannot have any more.
+        share_transform: whether to share the transform from the grid_mean_predictor between neurons. This requires that the datasets
+            have the properties `neurons.multi_match_id` which are used for matching. Every dataset
+            has to have all these ids and cannot have any more.
+        init_noise: noise for initialization of weights
+        init_transform_scale: scale of the weights of the randomly intialized grid_mean_predictor network
+        all other args: See Documentation of SE2dCore in neuralpredictors.layers.cores and
+            FullGaussian2d in neuralpredictors.layers.readouts
     Returns: An initialized model which consists of model.core and model.readout
     """
     if transfer_state_dict is not None:
@@ -255,7 +266,7 @@ def se2d_pointpooled(
             in the format {'data_key': dataloader object, .. }
         seed: random seed
         elu_offset: Offset for the output non-linearity [F.elu(x + self.offset)]
-        all other args: See Documentation of Stacked2dCore in neuralpredictors.layers.cores and
+        all other args: See Documentation of SE2dCore in neuralpredictors.layers.cores and
             PointPooled2D in neuralpredictors.layers.readouts
     Returns: An initialized model which consists of model.core and model.readout
     """
@@ -310,116 +321,6 @@ def se2d_pointpooled(
         bias=readout_bias,
         gamma_readout=gamma_readout,
         init_range=init_range,
-    )
-
-    # initializing readout bias to mean response
-    if readout_bias and data_info is None:
-        for key, value in dataloaders.items():
-            _, targets = next(iter(value))
-            readout[key].bias.data = targets.mean(0)
-
-    model = Encoder(core, readout, elu_offset)
-
-    return model
-
-
-def se2d_fullSXF(
-    dataloaders,
-    seed,
-    elu_offset=0,
-    data_info=None,
-    transfer_state_dict=None,
-    # core args
-    hidden_channels=64,
-    input_kern=9,
-    hidden_kern=7,
-    layers=4,
-    gamma_input=6.3831,
-    skip=0,
-    bias=False,
-    final_nonlinearity=True,
-    momentum=0.9,
-    pad_input=False,
-    batch_norm=True,
-    hidden_dilation=1,
-    laplace_padding=None,
-    input_regularizer="LaplaceL2norm",
-    stack=-1,
-    se_reduction=32,
-    n_se_blocks=0,
-    depth_separable=True,
-    linear=False,
-    init_noise=4.1232e-05,
-    normalize=False,
-    readout_bias=True,
-    gamma_readout=0.0076,
-    share_features=False,
-):
-    if transfer_state_dict is not None:
-        print(
-            "Transfer state_dict given. This will only have an effect in the bayesian hypersearch. See: TrainedModelBayesianTransfer "
-        )
-    if data_info is not None:
-        n_neurons_dict, in_shapes_dict, input_channels = unpack_data_info(data_info)
-    else:
-        if "train" in dataloaders.keys():
-            dataloaders = dataloaders["train"]
-
-        # Obtain the named tuple fields from the first entry of the first dataloader in the dictionary
-        in_name, out_name = next(iter(list(dataloaders.values())[0]))._fields
-
-        session_shape_dict = get_dims_for_loader_dict(dataloaders)
-        n_neurons_dict = {k: v[out_name][1] for k, v in session_shape_dict.items()}
-        in_shapes_dict = {k: v[in_name] for k, v in session_shape_dict.items()}
-        input_channels = [v[in_name][1] for v in session_shape_dict.values()]
-
-    core_input_channels = list(input_channels.values())[0] if isinstance(input_channels, dict) else input_channels[0]
-
-    shared_match_ids = None
-    if share_features:
-        shared_match_ids = {k: v.dataset.neurons.multi_match_id for k, v in dataloaders.items()}
-        all_multi_unit_ids = set(np.hstack(shared_match_ids.values()))
-
-        for match_id in shared_match_ids.values():
-            assert len(set(match_id) & all_multi_unit_ids) == len(
-                all_multi_unit_ids
-            ), "All multi unit IDs must be present in all datasets"
-
-    set_random_seed(seed)
-
-    core = SE2dCore(
-        input_channels=core_input_channels,
-        hidden_channels=hidden_channels,
-        input_kern=input_kern,
-        hidden_kern=hidden_kern,
-        layers=layers,
-        gamma_input=gamma_input,
-        skip=skip,
-        final_nonlinearity=final_nonlinearity,
-        bias=bias,
-        momentum=momentum,
-        pad_input=pad_input,
-        batch_norm=batch_norm,
-        hidden_dilation=hidden_dilation,
-        laplace_padding=laplace_padding,
-        input_regularizer=input_regularizer,
-        stack=stack,
-        se_reduction=se_reduction,
-        n_se_blocks=n_se_blocks,
-        depth_separable=depth_separable,
-        linear=linear,
-    )
-
-    readout = MultipleFullSXF(
-        core,
-        in_shape_dict=in_shapes_dict,
-        n_neurons_dict=n_neurons_dict,
-        init_noise=init_noise,
-        bias=readout_bias,
-        gamma_readout=gamma_readout,
-        normalize=normalize,
-        share_features=share_features,
-        shared_match_ids=shared_match_ids,
     )
 
     # initializing readout bias to mean response
@@ -531,6 +432,128 @@ def se2d_spatialxfeaturelinear(
     return model
 
 
+def se2d_fullSXF(
+    dataloaders,
+    seed,
+    elu_offset=0,
+    data_info=None,
+    transfer_state_dict=None,
+    # core args
+    hidden_channels=64,
+    input_kern=9,
+    hidden_kern=7,
+    layers=4,
+    gamma_input=6.3831,
+    skip=0,
+    bias=False,
+    final_nonlinearity=True,
+    momentum=0.9,
+    pad_input=False,
+    batch_norm=True,
+    hidden_dilation=1,
+    laplace_padding=None,
+    input_regularizer="LaplaceL2norm",
+    stack=-1,
+    se_reduction=32,
+    n_se_blocks=0,
+    depth_separable=True,
+    linear=False,
+    init_noise=4.1232e-05,
+    normalize=False,
+    readout_bias=True,
+    gamma_readout=0.0076,
+    share_features=False,
+):
+    """
+    Model class of a SE2dCore and a factorized (sxf) readout
+    Args:
+        dataloaders: a dictionary of dataloaders, one loader per session
+            in the format {'data_key': dataloader object, .. }
+        seed: random seed
+        elu_offset: Offset for the output non-linearity [F.elu(x + self.offset)]
+        all other args: See Documentation of SE2dCore in neuralpredictors.layers.cores and
+            fullSXF in neuralpredictors.layers.readouts
+    Returns: An initialized model which consists of model.core and model.readout
+    """
+
+    if transfer_state_dict is not None:
+        print(
+            "Transfer state_dict given. This will only have an effect in the bayesian hypersearch. See: TrainedModelBayesianTransfer "
+        )
+    if data_info is not None:
+        n_neurons_dict, in_shapes_dict, input_channels = unpack_data_info(data_info)
+    else:
+        if "train" in dataloaders.keys():
+            dataloaders = dataloaders["train"]
+
+        # Obtain the named tuple fields from the first entry of the first dataloader in the dictionary
+        in_name, out_name = next(iter(list(dataloaders.values())[0]))._fields
+
+        session_shape_dict = get_dims_for_loader_dict(dataloaders)
+        n_neurons_dict = {k: v[out_name][1] for k, v in session_shape_dict.items()}
+        in_shapes_dict = {k: v[in_name] for k, v in session_shape_dict.items()}
+        input_channels = [v[in_name][1] for v in session_shape_dict.values()]
+
+    core_input_channels = list(input_channels.values())[0] if isinstance(input_channels, dict) else input_channels[0]
+
+    shared_match_ids = None
+    if share_features:
+        shared_match_ids = {k: v.dataset.neurons.multi_match_id for k, v in dataloaders.items()}
+        all_multi_unit_ids = set(np.hstack(shared_match_ids.values()))
+
+        for match_id in shared_match_ids.values():
+            assert len(set(match_id) & all_multi_unit_ids) == len(
+                all_multi_unit_ids
+            ), "All multi unit IDs must be present in all datasets"
+
+    set_random_seed(seed)
+
+    core = SE2dCore(
+        input_channels=core_input_channels,
+        hidden_channels=hidden_channels,
+        input_kern=input_kern,
+        hidden_kern=hidden_kern,
+        layers=layers,
+        gamma_input=gamma_input,
+        skip=skip,
+        final_nonlinearity=final_nonlinearity,
+        bias=bias,
+        momentum=momentum,
+        pad_input=pad_input,
+        batch_norm=batch_norm,
+        hidden_dilation=hidden_dilation,
+        laplace_padding=laplace_padding,
+        input_regularizer=input_regularizer,
+        stack=stack,
+        se_reduction=se_reduction,
+        n_se_blocks=n_se_blocks,
+        depth_separable=depth_separable,
+        linear=linear,
+    )
+
+    readout = MultipleFullSXF(
+        core,
+        in_shape_dict=in_shapes_dict,
+        n_neurons_dict=n_neurons_dict,
+        init_noise=init_noise,
+        bias=readout_bias,
+        gamma_readout=gamma_readout,
+        normalize=normalize,
+        share_features=share_features,
+        shared_match_ids=shared_match_ids,
+    )
+
+    # initializing readout bias to mean response
+    if readout_bias and data_info is None:
+        for key, value in dataloaders.items():
+            _, targets = next(iter(value))
+            readout[key].bias.data = targets.mean(0)
+
+    model = Encoder(core, readout, elu_offset)
+
+    return model
+
+
 def taskdriven_fullgaussian2d(
     dataloaders,
     seed,
@@ -563,6 +586,37 @@ def taskdriven_fullgaussian2d(
     init_noise=1e-3,
     init_transform_scale=0.2,
 ):
+    """
+    Model class of a task-driven transfer core and a Gaussian readout
+    Args:
+        dataloaders: a dictionary of dataloaders, one loader per session
+            in the format {'data_key': dataloader object, .. }
+        seed: random seed
+        elu_offset: Offset for the output non-linearity [F.elu(x + self.offset)]
+        grid_mean_predictor: if not None, needs to be a dictionary of the form
+            {
+            'type': 'cortex',
+            'input_dimensions': 2,
+            'hidden_layers':0,
+            'hidden_features':20,
+            'final_tanh': False,
+            }
+            In that case the datasets need to have the property `neurons.cell_motor_coordinates`
+        share_features: whether to share features between readouts. This requires that the datasets
+            have the properties `neurons.multi_match_id` which are used for matching. Every dataset
+            has to have all these ids and cannot have any more.
+        share_grid: whether to share the grid between neurons. This requires that the datasets
+            have the properties `neurons.multi_match_id` which are used for matching. Every dataset
+            has to have all these ids and cannot have any more.
+        share_transform: whether to share the transform from the grid_mean_predictor between neurons. This requires that the datasets
+            have the properties `neurons.multi_match_id` which are used for matching. Every dataset
+            has to have all these ids and cannot have any more.
+        init_noise: noise for initialization of weights
+        init_transform_scale: scale of the weights of the randomly intialized grid_mean_predictor network
+        all other args: See Documentation of TransferLearningCore in neuralpredictors.layers.cores and
+            FullGaussian2d in neuralpredictors.layers.readouts
+    Returns: An initialized model which consists of model.core and model.readout
+    """
 
     if data_info is not None:
         n_neurons_dict, in_shapes_dict, input_channels = unpack_data_info(data_info)
@@ -687,6 +741,17 @@ def taskdriven_fullSXF(
     gamma_readout=0.0076,
     share_features=False,
 ):
+    """
+    Model class of a task-driven transfer core and a factorized (sxf) readout
+    Args:
+        dataloaders: a dictionary of dataloaders, one loader per session
+            in the format {'data_key': dataloader object, .. }
+        seed: random seed
+        elu_offset: Offset for the output non-linearity [F.elu(x + self.offset)]
+        all other args: See Documentation of TransferLearningCore  in neuralpredictors.layers.cores and
+            fullSXF in neuralpredictors.layers.readouts
+    Returns: An initialized model which consists of model.core and model.readout
+    """
 
     if data_info is not None:
         n_neurons_dict, in_shapes_dict, input_channels = unpack_data_info(data_info)

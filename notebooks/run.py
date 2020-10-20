@@ -2,13 +2,13 @@ import os
 import datajoint as dj
 import pandas as pd
 
-dj.config['database.host'] = os.environ['DJ_HOST']
-dj.config['database.user'] = os.environ['DJ_USER']
-dj.config['database.password'] = os.environ['DJ_PASS']
-dj.config['enable_python_native_blobs'] = True
+dj.config["database.host"] = os.environ["DJ_HOST"]
+dj.config["database.user"] = os.environ["DJ_USER"]
+dj.config["database.password"] = os.environ["DJ_PASS"]
+dj.config["enable_python_native_blobs"] = True
 
-name = 'iclr' #"test" #"realdata"
-dj.config['schema_name'] = f"konstantin_nnsysident_{name}"
+name = "iclr"  # "test" #"realdata"
+dj.config["schema_name"] = f"konstantin_nnsysident_{name}"
 
 from nnfabrik.utility.hypersearch import Bayesian
 from nnfabrik.main import *
@@ -35,7 +35,6 @@ from nnsysident.tables.scoring import OracleScore, OracleScoreTransfer
 #     TrainedModelTransfer.populate(Seed * ExperimentsTransfer.Restrictions & 'seed=1' & 'experiment_name="{}"'.format(experiment_name),
 #                           reserve_jobs=True,
 #                           order="random",)
-
 
 
 ### Bayesian  -- Don't forget the schema!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -111,7 +110,6 @@ from nnsysident.tables.scoring import OracleScore, OracleScoreTransfer
 #                             skip_duplicates=True)
 
 
-
 ### Bayesian  -- Don't forget the schema!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # #########      SpatialxFeatureLinear     ######################
@@ -173,7 +171,6 @@ from nnsysident.tables.scoring import OracleScore, OracleScoreTransfer
 #                         dataset_fabrikant='kklurz',
 #                         dataset_comment='multi_match_n={}, image_n={}'.format(dataset_config['multi_match_n'], dataset_config['image_n']),
 #                         skip_duplicates=True)
-
 
 
 ### Bayesian  -- Don't forget the schema!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -300,7 +297,6 @@ from nnsysident.tables.scoring import OracleScore, OracleScoreTransfer
 #                             dataset_fabrikant='kklurz',
 #                             dataset_comment='neuron_n={}, image_n={}'.format(dataset_config['neuron_n'], dataset_config['image_n']),
 #                             skip_duplicates=True)
-
 
 
 ### Bayesian  -- Don't forget the schema!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -578,7 +574,6 @@ from nnsysident.tables.scoring import OracleScore, OracleScoreTransfer
 # best_parameters, _, _, _ = autobayes.run()
 
 
-
 ## Bayesian  -- Don't forget the schema!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 ##########      Full Gaussian 2d TRANSFER ALAN   ######################
@@ -634,8 +629,6 @@ from nnsysident.tables.scoring import OracleScore, OracleScoreTransfer
 # best_parameters, _, _, _ = autobayes.run()
 
 
-
-
 ### Bayesian  -- Don't forget the schema!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
@@ -683,7 +676,6 @@ from nnsysident.tables.scoring import OracleScore, OracleScoreTransfer
 #                      trained_model_table='nnsysident.tables.bayesian.TrainedModelBayesian', total_trials=100)
 #
 # best_parameters, _, _, _ = autobayes.run()
-
 
 
 ### Bayesian  -- Don't forget the schema!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -745,21 +737,6 @@ from nnsysident.tables.scoring import OracleScore, OracleScoreTransfer
 #                     dataset_fabrikant='kklurz',
 #                     dataset_comment='neuron_n={}, image_n={}'.format(dataset_config['neuron_n'], dataset_config['image_n']),
 #                     skip_duplicates=True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 OracleScore.populate(reserve_jobs=True)

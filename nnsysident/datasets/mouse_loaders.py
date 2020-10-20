@@ -6,13 +6,22 @@ from torch.utils.data.sampler import SubsetRandomSampler
 
 from nnfabrik.utility.nn_helpers import set_random_seed
 from neuralpredictors.data.datasets import StaticImageSet, FileTreeDataset
-from neuralpredictors.data.transforms import Subsample, ToTensor, NeuroNormalizer, AddBehaviorAsChannels, SelectInputChannel
+from neuralpredictors.data.transforms import (
+    Subsample,
+    ToTensor,
+    NeuroNormalizer,
+    AddBehaviorAsChannels,
+    SelectInputChannel,
+)
 from neuralpredictors.data.samplers import SubsetSequentialSampler
 from ..utility.data_helpers import get_oracle_dataloader
-from dataport.bcm.static import fetch_non_existing_data
+
+try:
+    from dataport.bcm.static import fetch_non_existing_data
+except ImportError:
+    print("dataport not available, will only be able to load data locally")
 
 
-@fetch_non_existing_data
 def static_loader(
     path,
     batch_size,
@@ -48,6 +57,8 @@ def static_loader(
         neuron_ids (list, optional): select neurons by their ids.
         neuron_n (int, optional): number of neurons to select randomly. Can not be set together with neuron_ids
         neuron_base_seed (float, optional): base seed for neuron selection. Get's multiplied by neuron_n to obtain final seed
+        exclude_neuron_n (int): the first <exclude_neuron_n> neurons will be excluded (given a neuron_base_seed),
+                                then <neuron_n> neurons will be drawn from the remaining neurons.
         image_ids (list, optional): select images by their ids.
         image_n (int, optional): number of images to select randomly. Can not be set together with image_ids
         image_base_seed (float, optional): base seed for image selection. Get's multiplied by image_n to obtain final seed
@@ -66,12 +77,18 @@ def static_loader(
         if get_key is True it returns the data_key (as the first output) followed by the dataloder dictionary.
 
     """
-    assert any([image_ids is None, all([image_n is None, image_base_seed is None])]), \
-        "image_ids can not be set at the same time with anhy other image selection criteria"
-    assert any([neuron_ids is None, all([neuron_n is None, neuron_base_seed is None, areas is None, layers is None, exclude_neuron_n==0])]), \
-        "neuron_ids can not be set at the same time with any other neuron selection criteria"
-    assert any([exclude_neuron_n==0, neuron_base_seed is not None]),  \
-        "neuron_base_seed must be set when exclude_neuron_n is not 0"
+    assert any(
+        [image_ids is None, all([image_n is None, image_base_seed is None])]
+    ), "image_ids can not be set at the same time with anhy other image selection criteria"
+    assert any(
+        [
+            neuron_ids is None,
+            all([neuron_n is None, neuron_base_seed is None, areas is None, layers is None, exclude_neuron_n == 0]),
+        ]
+    ), "neuron_ids can not be set at the same time with any other neuron selection criteria"
+    assert any(
+        [exclude_neuron_n == 0, neuron_base_seed is not None]
+    ), "neuron_base_seed must be set when exclude_neuron_n is not 0"
     data_key = path.split("static")[-1].split(".")[0].replace("preproc", "").replace("_nobehavior", "")
 
     if file_tree:
@@ -102,10 +119,13 @@ def static_loader(
     if neuron_n is not None:
         random_state = np.random.get_state()
         if neuron_base_seed is not None:
-            np.random.seed(neuron_base_seed * neuron_n) # avoid nesting by making seed dependent on number of neurons
-        assert len(dat.neurons.unit_ids) >= exclude_neuron_n + neuron_n, \
-            "After excluding {} neurons, there are not {} neurons left".format(exclude_neuron_n, neuron_n)
-        neuron_ids = np.random.choice(dat.neurons.unit_ids, size=exclude_neuron_n + neuron_n, replace=False)[exclude_neuron_n:]
+            np.random.seed(neuron_base_seed * neuron_n)  # avoid nesting by making seed dependent on number of neurons
+        assert (
+            len(dat.neurons.unit_ids) >= exclude_neuron_n + neuron_n
+        ), "After excluding {} neurons, there are not {} neurons left".format(exclude_neuron_n, neuron_n)
+        neuron_ids = np.random.choice(dat.neurons.unit_ids, size=exclude_neuron_n + neuron_n, replace=False)[
+            exclude_neuron_n:
+        ]
         np.random.set_state(random_state)
     if neuron_ids is not None:
         idx = [np.where(dat.neurons.unit_ids == unit_id)[0][0] for unit_id in neuron_ids]
@@ -123,11 +143,9 @@ def static_loader(
     dat.transforms.extend(more_transforms)
 
     if return_test_sampler:
-        print('Returning only test sampler with repeats...')
-        dataloader = get_oracle_dataloader(
-            dat, oracle_condition=oracle_condition, file_tree=file_tree
-        )
-        return (data_key, {'test': dataloader}) if get_key else {'test': dataloader}
+        print("Returning only test sampler with repeats...")
+        dataloader = get_oracle_dataloader(dat, oracle_condition=oracle_condition, file_tree=file_tree)
+        return (data_key, {"test": dataloader}) if get_key else {"test": dataloader}
 
     # subsample images
     dataloaders = {}
@@ -142,8 +160,8 @@ def static_loader(
         elif tier == "train" and image_n is not None:
             random_state = np.random.get_state()
             if image_base_seed is not None:
-                np.random.seed(image_base_seed * image_n) #avoid nesting by making seed dependent on number of images
-            subset_idx = np.random.choice(np.where(tier_array == 'train')[0], size=image_n, replace=False)
+                np.random.seed(image_base_seed * image_n)  # avoid nesting by making seed dependent on number of images
+            subset_idx = np.random.choice(np.where(tier_array == "train")[0], size=image_n, replace=False)
             np.random.set_state(random_state)
         else:
             subset_idx = np.where(tier_array == tier)[0]
@@ -202,6 +220,8 @@ def static_loaders(
         include_behavior (bool, optional): whether to include behavioral data
         select_input_channel (int, optional): Only for color images. Select a color channel
         file_tree (bool, optional): whether to use the file tree dataset format. If False, equivalent to the HDF5 format
+        return_test_sampler (bool, optional): whether to return only the test loader with repeat-batches
+        oracle_condition (list, optional): Only relevant if return_test_sampler=True. Class indices for the sampler
 
     Returns:
         dict: dictionary of dictionaries where the first level keys are 'train', 'validation', and 'test', and second level keys are data_keys.
@@ -236,7 +256,7 @@ def static_loaders(
             select_input_channel=select_input_channel,
             file_tree=file_tree,
             return_test_sampler=return_test_sampler,
-            oracle_condition=oracle_condition
+            oracle_condition=oracle_condition,
         )
         for k in dls:
             dls[k][data_key] = loaders[k]
@@ -290,6 +310,8 @@ def static_shared_loaders(
         exclude (str, optional): data to exclude from data-normalization. Only relevant if normalize=True. Defaults to 'images'
         include_behavior (bool, optional): whether to include behavioral data
         select_input_channel (int, optional): Only for color images. Select a color channel
+        return_test_sampler (bool, optional): whether to return only the test loader with repeat-batches
+        oracle_condition (list, optional): Only relevant if return_test_sampler=True. Class indices for the sampler
 
     Returns:
         dict: dictionary of dictionaries where the first level keys are 'train', 'validation', and 'test', and second level keys are data_keys.
@@ -298,16 +320,21 @@ def static_shared_loaders(
     assert (
         len(paths) != 1
     ), "Only one dataset was specified in 'paths'. When using the 'static_shared_loaders', more than one dataset has to be passed."
-    assert any([multi_match_ids is None, all([multi_match_n is None, multi_match_base_seed is None, exclude_multi_match_n==0])]), \
-        "multi_match_ids can not be set at the same time with any other multi_match selection criteria"
-    assert any([exclude_multi_match_n==0, multi_match_base_seed is not None]),  \
-        "multi_match_base_seed must be set when exclude_multi_match_n is not 0"
+    assert any(
+        [
+            multi_match_ids is None,
+            all([multi_match_n is None, multi_match_base_seed is None, exclude_multi_match_n == 0]),
+        ]
+    ), "multi_match_ids can not be set at the same time with any other multi_match selection criteria"
+    assert any(
+        [exclude_multi_match_n == 0, multi_match_base_seed is not None]
+    ), "multi_match_base_seed must be set when exclude_multi_match_n is not 0"
     # Collect overlapping multi matches
     multi_unit_ids, per_data_set_ids, given_neuron_ids = [], [], []
     match_set = None
     for path in paths:
         data_key, dataloaders = static_loader(path=path, batch_size=100, get_key=True)
-        dat = dataloaders['train'].dataset
+        dat = dataloaders["train"].dataset
         multi_unit_ids.append(dat.neurons.multi_match_id)
         per_data_set_ids.append(dat.neurons.unit_ids)
         if match_set is None:
@@ -331,11 +358,20 @@ def static_shared_loaders(
     elif multi_match_n is not None:
         random_state = np.random.get_state()
         if multi_match_base_seed is not None:
-            np.random.seed(multi_match_base_seed * multi_match_n) # avoid nesting by making seed dependent on number of neurons
-        assert len(match_set) >= exclude_multi_match_n + multi_match_n, \
-            "After excluding {} neurons, there are not {} matched neurons left".format(exclude_multi_match_n, multi_match_n)
-        match_subset = np.random.choice(match_set, size=exclude_multi_match_n + multi_match_n, replace=False)[exclude_multi_match_n:]
-        neuron_ids = [pdsi[np.isin(munit_ids, match_subset)] for munit_ids, pdsi in zip(multi_unit_ids, per_data_set_ids)]
+            np.random.seed(
+                multi_match_base_seed * multi_match_n
+            )  # avoid nesting by making seed dependent on number of neurons
+        assert (
+            len(match_set) >= exclude_multi_match_n + multi_match_n
+        ), "After excluding {} neurons, there are not {} matched neurons left".format(
+            exclude_multi_match_n, multi_match_n
+        )
+        match_subset = np.random.choice(match_set, size=exclude_multi_match_n + multi_match_n, replace=False)[
+            exclude_multi_match_n:
+        ]
+        neuron_ids = [
+            pdsi[np.isin(munit_ids, match_subset)] for munit_ids, pdsi in zip(multi_unit_ids, per_data_set_ids)
+        ]
         np.random.set_state(random_state)
     else:
         neuron_ids = [pdsi[np.isin(munit_ids, match_set)] for munit_ids, pdsi in zip(multi_unit_ids, per_data_set_ids)]
@@ -368,7 +404,7 @@ def static_shared_loaders(
             select_input_channel=select_input_channel,
             file_tree=True,
             return_test_sampler=return_test_sampler,
-            oracle_condition=oracle_condition
+            oracle_condition=oracle_condition,
         )
         for k in dls:
             dls[k][data_key] = loaders[k]
@@ -376,38 +412,41 @@ def static_shared_loaders(
     return dls
 
 
-def mouse_allen_scene_loader(path=None,
-                             batch_size=None,
-                             seed=None,
-                             areas=None,
-                             imaging_depths=None,
-                             tier=None,
-                             specimen_ids=None,
-                             get_key=False,
-                             cuda=True,
-                             normalize=True,
-                             include_behavior=False,
-                             exclude='images',
-                             return_test_sampler=False,
-                             neuron_ids=None,
-                             select_input_channel=None,
-                             oracle_condition=None,
-                             ):
+def mouse_allen_scene_loader(
+    path=None,
+    batch_size=None,
+    seed=None,
+    areas=None,
+    imaging_depths=None,
+    tier=None,
+    specimen_ids=None,
+    get_key=False,
+    cuda=True,
+    normalize=True,
+    include_behavior=False,
+    exclude="images",
+    return_test_sampler=False,
+    neuron_ids=None,
+    select_input_channel=None,
+    oracle_condition=None,
+):
     print(neuron_ids)
-    assert neuron_ids is None, 'neuron_ids not implemented yet'
-    assert select_input_channel is None, 'select_input_channel not implemented yet'
+    assert neuron_ids is None, "neuron_ids not implemented yet"
+    assert select_input_channel is None, "select_input_channel not implemented yet"
 
-    dat = FileTreeDataset(path, 'images', 'responses', 'behavior') if include_behavior else FileTreeDataset(path,
-                                                                                                                'images',
-                                                                                                                'responses')
+    dat = (
+        FileTreeDataset(path, "images", "responses", "behavior")
+        if include_behavior
+        else FileTreeDataset(path, "images", "responses")
+    )
     # specify condition(s) for sampling neurons. If you want to sample specific neurons define conditions that would effect idx
     conds = np.ones(len(dat.neurons.area), dtype=bool)
     if areas is not None:
-        conds &= (np.isin(dat.neurons.area, areas))
+        conds &= np.isin(dat.neurons.area, areas)
     if imaging_depths is not None:
-        conds &= (np.isin(dat.neurons.imaging_depth, imaging_depths))
+        conds &= np.isin(dat.neurons.imaging_depth, imaging_depths)
     if specimen_ids is not None:
-        conds &= (np.isin(dat.neurons.specimen_ids, specimen_ids))
+        conds &= np.isin(dat.neurons.specimen_ids, specimen_ids)
     idx = np.where(conds)[0]
     more_transforms = [Subsample(idx), ToTensor(cuda)]
     if normalize:
@@ -416,37 +455,38 @@ def mouse_allen_scene_loader(path=None,
         more_transforms.insert(0, AddBehaviorAsChannels())
     dat.transforms.extend(more_transforms)
     if return_test_sampler:
-        assert False, 'Check that code before you run it'
+        assert False, "Check that code before you run it"
         dataloader = get_oracle_dataloader(dat, oracle_condition=oracle_condition, file_tree=True)
         return dataloader
     # subsample images
     dataloaders = {}
-    keys = [tier] if tier else ['train', 'validation', 'test']
+    keys = [tier] if tier else ["train", "validation", "test"]
     for tier in keys:
         if seed is not None:
             set_random_seed(seed)
         # sample images
         subset_idx = np.where(dat.trial_info.tiers == tier)[0]
-        sampler = SubsetRandomSampler(subset_idx) if tier == 'train' else SubsetSequentialSampler(subset_idx)
+        sampler = SubsetRandomSampler(subset_idx) if tier == "train" else SubsetSequentialSampler(subset_idx)
         dataloaders[tier] = DataLoader(dat, sampler=sampler, batch_size=batch_size)
     # create the data_key for a specific data path
-    data_key = path.split('allen')[-1].split(".")[0]
+    data_key = path.split("allen")[-1].split(".")[0]
     return (data_key, dataloaders) if get_key else dataloaders
 
 
-def mouse_allen_scene_loaders(paths,
-                         batch_size,
-                         seed=None,
-                         areas=None,
-                         imaging_depths=None,
-                         tier=None,
-                         specimen_ids=None,
-                         cuda=True,
-                         normalize=True,
-                         include_behavior=False,
-                         exclude= 'images',
-                         select_input_channel=None,
-                         ):
+def mouse_allen_scene_loaders(
+    paths,
+    batch_size,
+    seed=None,
+    areas=None,
+    imaging_depths=None,
+    tier=None,
+    specimen_ids=None,
+    cuda=True,
+    normalize=True,
+    include_behavior=False,
+    exclude="images",
+    select_input_channel=None,
+):
     """
     Returns a dictionary of dataloaders (i.e., trainloaders, valloaders, and testloaders) for >= 1 dataset(s).
     Args:
@@ -463,15 +503,25 @@ def mouse_allen_scene_loaders(paths,
     """
     neuron_ids = specimen_ids if specimen_ids is not None else [None]
     dls = OrderedDict({})
-    keys = [tier] if tier else ['train', 'validation', 'test']
+    keys = [tier] if tier else ["train", "validation", "test"]
     for key in keys:
         dls[key] = OrderedDict({})
     for path, neuron_id in zip_longest(paths, neuron_ids, fillvalue=None):
-        data_key, loaders = mouse_allen_scene_loader(path, batch_size, seed=seed,
-                                                areas=areas, imaging_depths=imaging_depths, cuda=cuda,
-                                                tier=tier, get_key=True, neuron_ids=neuron_id,
-                                                normalize=normalize, include_behavior=include_behavior,
-                                                exclude=exclude, select_input_channel=select_input_channel)
+        data_key, loaders = mouse_allen_scene_loader(
+            path,
+            batch_size,
+            seed=seed,
+            areas=areas,
+            imaging_depths=imaging_depths,
+            cuda=cuda,
+            tier=tier,
+            get_key=True,
+            neuron_ids=neuron_id,
+            normalize=normalize,
+            include_behavior=include_behavior,
+            exclude=exclude,
+            select_input_channel=select_input_channel,
+        )
         for k in dls:
             dls[k][data_key] = loaders[k]
     return dls

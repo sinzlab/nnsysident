@@ -6,7 +6,6 @@ services:
       - ./notebooks/models:/notebooks/models
       - $HOME/data/static:/notebooks/data
       - ./notebooks:/notebooks
-      - ../NIPS-System-Identification:/src/nips
       - ../nnsysident:/src/nnsysident
       - ../data_port:/src/data_port
       - /tmp/djcache:/cache
@@ -20,7 +19,6 @@ services:
       - ./notebooks/models:/notebooks/models
       - $HOME/data/static:/notebooks/data
       - ./notebooks:/notebooks
-      - ../NIPS-System-Identification:/src/nips
       - ../nnsysident:/src/nnsysident
       - ../data_port:/src/data_port
       - /tmp/djcache:/cache
@@ -33,7 +31,6 @@ services:
       - ./notebooks/models:/notebooks/models
       - /var/sinz-shared/mouse/toliaslab/static:/notebooks/data
       - ./notebooks:/notebooks
-      - ../NIPS-System-Identification:/src/nips
       - ../nnsysident:/src/nnsysident
       - ../data_port:/src/data_port
       - ../allenobs:/src/allenobs
@@ -50,7 +47,6 @@ services:
       - /var/sinz-shared/mouse/toliaslab/static:/notebooks/data
       - /var/sinz-shared/monkey/toliaslab:/notebooks/data/monkey
       - ./notebooks:/notebooks
-      - ../NIPS-System-Identification:/src/nips
       - ../nnsysident:/src/nnsysident
       - ../data_port:/src/data_port
       - ../allenobs:/src/allenobs
