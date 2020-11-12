@@ -15,6 +15,10 @@ from nnfabrik.main import *
 from nnsysident.tables.experiments import *
 from nnsysident.tables.scoring import OracleScore, OracleScoreTransfer
 
+
+print("Hello, this is Mrs Lurz speaking. I simply wanted to inform you...")
+
+
 ### Experiment
 
 # for experiment_name in list(Experiments().fetch('experiment_name')):
@@ -739,5 +743,5 @@ from nnsysident.tables.scoring import OracleScore, OracleScoreTransfer
 #                     skip_duplicates=True)
 
 
-OracleScore.populate(reserve_jobs=True)
-OracleScoreTransfer.populate(reserve_jobs=True)
+# OracleScore.populate(reserve_jobs=True)
+# OracleScoreTransfer.populate(reserve_jobs=True)

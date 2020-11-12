@@ -226,7 +226,8 @@ def static_loaders(
     Returns:
         dict: dictionary of dictionaries where the first level keys are 'train', 'validation', and 'test', and second level keys are data_keys.
     """
-    set_random_seed(seed)
+    if seed is not None:
+        set_random_seed(seed)
     dls = OrderedDict({})
     keys = [tier] if tier else ["train", "validation", "test"]
     for key in keys:
@@ -316,7 +317,8 @@ def static_shared_loaders(
     Returns:
         dict: dictionary of dictionaries where the first level keys are 'train', 'validation', and 'test', and second level keys are data_keys.
     """
-    set_random_seed(seed)
+    if seed is not None:
+        set_random_seed(seed)
     assert (
         len(paths) != 1
     ), "Only one dataset was specified in 'paths'. When using the 'static_shared_loaders', more than one dataset has to be passed."

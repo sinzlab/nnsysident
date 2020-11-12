@@ -34,6 +34,7 @@ services:
       - ../nnsysident:/src/nnsysident
       - ../data_port:/src/data_port
       - ../allenobs:/src/allenobs
+      - ../mei:/notebooks/mei
       - /tmp/djcache:/cache
     env_file: .env
     runtime: nvidia
@@ -50,6 +51,7 @@ services:
       - ../nnsysident:/src/nnsysident
       - ../data_port:/src/data_port
       - ../allenobs:/src/allenobs
+      - ../mei:/notebooks/mei
       - /tmp/djcache:/cache
     env_file: .env
     ports:
