@@ -144,7 +144,7 @@ class TrainedModelTransfer(TrainedModelBase):
         transfer_fn = key.pop("transfer_fn")
         transfer_hash = key.pop("transfer_hash")
 
-        transfer_config = (self.transfer_table & 'transfer_hash="{}"'.format(transfer_hash)).fetch1("transfer_config")
+        transfer_config = (self.transfer_table & 'transfer_fn="{}"'.format(transfer_fn) & 'transfer_hash="{}"'.format(transfer_hash)).fetch1("transfer_config")
         trainer_config = (self.trainer_table & 'trainer_hash="{}"'.format(key["trainer_hash"])).fetch1("trainer_config")
 
         # load everything
@@ -153,7 +153,7 @@ class TrainedModelTransfer(TrainedModelBase):
         # Conduct the transfer defined by the transfer function
         transfer_function = resolve_fn(transfer_fn, default_base=None)
         transfer_function(
-            model=model, trained_model_table=TrainedModel, trainer_config=trainer_config, **transfer_config
+            model=model, trained_model_table=TrainedModel, trainer_config=trainer_config, seed=seed, **transfer_config
         )
 
         # define callback with pinging
