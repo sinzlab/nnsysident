@@ -16,8 +16,15 @@ from nnsysident.tables.experiments import *
 from nnsysident.tables.scoring import OracleScore, OracleScoreTransfer
 
 
-print("Hello, this is Mrs Lurz speaking. I simply wanted to inform you...")
+# Transfer Experiment
 
+for experiment_name in ["Real, core_transfer (animal), Core By Seed, se2d_fullgaussian2d, 11-S -> 20457-5-9"]:
+
+    TrainedModelTransfer.progress(Seed * ExperimentsTransfer.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name))
+
+    TrainedModelTransfer.populate(Seed * ExperimentsTransfer.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name),
+                          reserve_jobs=True,
+                          order="random",)
 
 ### Experiment
 
@@ -743,5 +750,5 @@ print("Hello, this is Mrs Lurz speaking. I simply wanted to inform you...")
 #                     skip_duplicates=True)
 
 
-# OracleScore.populate(reserve_jobs=True)
-# OracleScoreTransfer.populate(reserve_jobs=True)
+OracleScore.populate(reserve_jobs=True)
+OracleScoreTransfer.populate(reserve_jobs=True)
