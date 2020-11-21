@@ -1,6 +1,6 @@
 import datajoint as dj
 from .experiments import TrainedModel, TrainedModelTransfer
-from ..utility.measures import get_fraction_oracles
+from ..utility.measures import get_fraction_oracles, get_r2er
 
 from nnfabrik.utility.dj_helpers import CustomSchema
 from nnfabrik.builder import get_data
@@ -31,7 +31,7 @@ class ScoringTable(SummaryScoringBase):
         )
         model = self.get_model(key=key)[1]
         value = self.measure_function(model=model, dataloaders=dataloaders, device="cuda", **self.function_kwargs)
-        if type(value) != float and len(value) == 1:
+        if not isinstance(value, float) and len(value) == 1:
             value = value[0]
         key[self.measure_attribute] = value
         self.insert1(key, ignore_extra_fields=True)
@@ -52,4 +52,20 @@ class OracleScoreTransfer(ScoringTable):
     measure_dataset = "test"
     measure_attribute = "fraction_oracle"
     measure_function = staticmethod(get_fraction_oracles)
+    function_kwargs = {}
+
+@schema
+class R2erScore(ScoringTable):
+    trainedmodel_table = TrainedModel
+    measure_dataset = "test"
+    measure_attribute = "r2er"
+    measure_function = staticmethod(get_r2er)
+    function_kwargs = {}
+
+@schema
+class R2erScoreTransfer(ScoringTable):
+    trainedmodel_table = TrainedModelTransfer
+    measure_dataset = "test"
+    measure_attribute = "r2er"
+    measure_function = staticmethod(get_r2er)
     function_kwargs = {}

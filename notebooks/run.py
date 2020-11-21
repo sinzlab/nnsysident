@@ -13,18 +13,18 @@ dj.config["schema_name"] = f"konstantin_nnsysident_{name}"
 from nnfabrik.utility.hypersearch import Bayesian
 from nnfabrik.main import *
 from nnsysident.tables.experiments import *
-from nnsysident.tables.scoring import OracleScore, OracleScoreTransfer
+from nnsysident.tables.scoring import OracleScore, OracleScoreTransfer, R2erScore, R2erScoreTransfer
 
 
 # Transfer Experiment
 
-for experiment_name in ["Real, core_transfer (animal), Core By Seed, se2d_fullgaussian2d, 11-S -> 20457-5-9"]:
-
-    TrainedModelTransfer.progress(Seed * ExperimentsTransfer.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name))
-
-    TrainedModelTransfer.populate(Seed * ExperimentsTransfer.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name),
-                          reserve_jobs=True,
-                          order="random",)
+# for experiment_name in ["Real, core_transfer (animal), Core By Seed, se2d_fullgaussian2d, 11-S -> 20457-5-9"]:
+#
+#     TrainedModelTransfer.progress(Seed * ExperimentsTransfer.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name))
+#
+#     TrainedModelTransfer.populate(Seed * ExperimentsTransfer.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name),
+#                           reserve_jobs=True,
+#                           order="random",)
 
 ### Experiment
 
@@ -750,5 +750,21 @@ for experiment_name in ["Real, core_transfer (animal), Core By Seed, se2d_fullga
 #                     skip_duplicates=True)
 
 
-OracleScore.populate(reserve_jobs=True)
-OracleScoreTransfer.populate(reserve_jobs=True)
+# OracleScore.populate(reserve_jobs=True)
+# OracleScoreTransfer.populate(reserve_jobs=True)
+
+experiment_names = ["Real, Direct, random 128, se2d_fullgaussian2d, 20457-5-9",
+                    "Real, Direct, random 64, se2d_fullgaussian2d, 20457-5-9",
+                    "Real, taskdriven transfer (pretrained VGG), taskdriven_fullgaussian2d, 20457-5-9",
+                    "Real, taskdriven transfer (random VGG), taskdriven_fullgaussian2d, 20457-5-9"]
+for experiment_name in experiment_names:
+    R2erScore.populate(Experiments.Restrictions() & 'experiment_name = "{}"'.format(experiment_name))
+
+experiment_names = ["Real, core_transfer (animal), se2d_fullgaussian2d, 11-S -> 20457-5-9",
+                    "Real, core_transfer (animal), se2d_fullgaussian2d, 4-set -> 20457-5-9",
+                    "Real, core_transfer (animal), se2d_fullgaussian2d, 1-set -> 20457-5-9",
+                    "Real, core_transfer (animal) no cortex, se2d_fullgaussian2d, 11-S -> 20457-5-9",
+                    "Real, core_transfer (animal), se2d_fullgaussian2d, 4-S diff IDs -> 20457-5-9"]
+for experiment_name in experiment_names:
+    R2erScoreTransfer.populate(ExperimentsTransfer.Restrictions() & 'experiment_name = "{}"'.format(experiment_name))
+
