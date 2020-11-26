@@ -13,7 +13,7 @@ dj.config["schema_name"] = f"konstantin_nnsysident_{name}"
 from nnfabrik.utility.hypersearch import Bayesian
 from nnfabrik.main import *
 from nnsysident.tables.experiments import *
-from nnsysident.tables.scoring import OracleScore, OracleScoreTransfer, R2erScore, R2erScoreTransfer
+from nnsysident.tables.scoring import OracleScore, OracleScoreTransfer, R2erScore, R2erScoreTransfer, FeveScore, FeveScoreTransfer
 
 
 # Transfer Experiment
@@ -758,7 +758,7 @@ experiment_names = ["Real, Direct, random 128, se2d_fullgaussian2d, 20457-5-9",
                     "Real, taskdriven transfer (pretrained VGG), taskdriven_fullgaussian2d, 20457-5-9",
                     "Real, taskdriven transfer (random VGG), taskdriven_fullgaussian2d, 20457-5-9"]
 for experiment_name in experiment_names:
-    R2erScore.populate(Experiments.Restrictions() & 'experiment_name = "{}"'.format(experiment_name))
+    FeveScore.populate(Experiments.Restrictions() & 'experiment_name = "{}"'.format(experiment_name))
 
 experiment_names = ["Real, core_transfer (animal), se2d_fullgaussian2d, 11-S -> 20457-5-9",
                     "Real, core_transfer (animal), se2d_fullgaussian2d, 4-set -> 20457-5-9",
@@ -766,5 +766,6 @@ experiment_names = ["Real, core_transfer (animal), se2d_fullgaussian2d, 11-S -> 
                     "Real, core_transfer (animal) no cortex, se2d_fullgaussian2d, 11-S -> 20457-5-9",
                     "Real, core_transfer (animal), se2d_fullgaussian2d, 4-S diff IDs -> 20457-5-9"]
 for experiment_name in experiment_names:
-    R2erScoreTransfer.populate(ExperimentsTransfer.Restrictions() & 'experiment_name = "{}"'.format(experiment_name))
+    FeveScoreTransfer.populate(ExperimentsTransfer.Restrictions() & 'experiment_name = "{}"'.format(experiment_name))
 
+FeveScore.populate(Experiments.Restrictions() & 'experiment_name = "{}"'.format("Real, Direct, se2d_fullgaussian2d, 20457-5-9"), reserve_jobs=True)

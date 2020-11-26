@@ -1,6 +1,6 @@
 import datajoint as dj
 from .experiments import TrainedModel, TrainedModelTransfer
-from ..utility.measures import get_fraction_oracles, get_r2er
+from ..utility.measures import get_fraction_oracles, get_r2er, get_feve
 
 from nnfabrik.utility.dj_helpers import CustomSchema
 from nnfabrik.builder import get_data
@@ -54,6 +54,7 @@ class OracleScoreTransfer(ScoringTable):
     measure_function = staticmethod(get_fraction_oracles)
     function_kwargs = {}
 
+
 @schema
 class R2erScore(ScoringTable):
     trainedmodel_table = TrainedModel
@@ -62,10 +63,29 @@ class R2erScore(ScoringTable):
     measure_function = staticmethod(get_r2er)
     function_kwargs = {}
 
+
 @schema
 class R2erScoreTransfer(ScoringTable):
     trainedmodel_table = TrainedModelTransfer
     measure_dataset = "test"
     measure_attribute = "r2er"
     measure_function = staticmethod(get_r2er)
+    function_kwargs = {}
+
+
+@schema
+class FeveScore(ScoringTable):
+    trainedmodel_table = TrainedModel
+    measure_dataset = "test"
+    measure_attribute = "feve"
+    measure_function = staticmethod(get_feve)
+    function_kwargs = {}
+
+
+@schema
+class FeveScoreTransfer(ScoringTable):
+    trainedmodel_table = TrainedModelTransfer
+    measure_dataset = "test"
+    measure_attribute = "feve"
+    measure_function = staticmethod(get_feve)
     function_kwargs = {}
