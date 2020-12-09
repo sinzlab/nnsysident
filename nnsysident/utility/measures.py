@@ -25,7 +25,7 @@ def model_predictions_repeats(model, dataloader, data_key, device="cpu", broadca
             responses = responses.squeeze(dim=0)
 
         assert torch.all(torch.eq(images[-1,], images[0,])), "All images in the batch should be equal"
-        unique_images = torch.cat((unique_images, images[0:1,]), dim=0)
+        unique_images = torch.cat((unique_images, images[0:1,].detach().cpu()), dim=0)
         target.append(responses.detach().cpu().numpy())
 
     # Forward unique images once:
@@ -240,6 +240,40 @@ def get_fraction_oracles(model, dataloaders, device="cpu", corrected=False):
     return oracle_performance
 
 
+def get_r2er(model, dataloaders, device="cpu"):
+    dataloaders = dataloaders["test"] if "test" in dataloaders else dataloaders
+    r2er={}
+    for data_key, dataloader in dataloaders.items():
+        # get targets and predictions
+        target, output = model_predictions_repeats(model, dataloader, data_key, device=device)
+        target = fill_response_repeats(target)
+        # re-arrange arrays so they fit for the function r2er_n2m
+        target = np.moveaxis(target, [0, 1], [-1, -2])
+        output = np.moveaxis(output, [0, 1], [-1, -2])
+        # compute r2er
+        r2er[data_key], _ = compute_r2er_n2m(output, target)
+
+    # TODO: This has to be adapted to allow for per_neuron, as_dict, etc...
+    r2er = np.mean(np.hstack([v for v in r2er.values()]))
+    return r2er
+
+
+def get_feve(model, dataloaders, device="cpu"):
+    dataloaders = dataloaders["test"] if "test" in dataloaders else dataloaders
+    feve={}
+    for data_key, dataloader in dataloaders.items():
+        # get targets and predictions
+        target, output = model_predictions_repeats(model, dataloader, data_key, device=device)
+        target = fill_response_repeats(target)
+        output = np.repeat(output[:, np.newaxis, :], target.shape[1], axis=1)
+        # compute feve
+        feve[data_key] = compute_feve(target, output)
+
+    # TODO: This has to be adapted to allow for per_neuron, as_dict, etc...
+    feve = np.mean(np.hstack([v for v in feve.values()]))
+    return feve
+
+
 def get_explainable_var(dataloaders, as_dict=False, per_neuron=True):
     dataloaders = dataloaders["test"] if "test" in dataloaders else dataloaders
     explainable_var = {}
@@ -393,3 +427,91 @@ def get_targets(model, dataloaders, device="cpu", as_dict=True, per_neuron=True,
     if not as_dict:
         responses = [v for v in responses.values()]
     return responses
+
+
+def fill_response_repeats(x, fillval=np.nan):
+    """
+    Takes in the responses as provided by 'model_predictions_repeats' and fills the missing repeats per unique image with the fillval.
+    """
+    lens = np.array([len(item) for item in x])
+    shape = np.array(x)[lens == lens.max()][0].shape
+    for idx in np.where(lens != lens.max())[0]:
+        helper_array = np.full(shape, fillval)
+        helper_array[:lens[idx], :] = x[idx]
+        x[idx] = helper_array
+    return np.stack(x)
+
+
+def compute_r2er_n2m(x, y):
+    """
+    Approximately unbiased estimator of r^2 between the expected values.
+        of the rows of x and y. Assumes x is fixed and y has equal variance across
+        trials and observations
+    Parameters
+    ----------
+    x : numpy.ndarray
+        m unique images model predictions
+    y : numpy.ndarray
+        n repeats by m unique images array of data
+
+    Returns
+    -------
+    r2er : an estimate of the r2 between the expected values
+    r2 :   classic r2
+    --------
+    """
+    n, m = np.shape(y)[-2:]
+    # estimate trial to trial variability for each stim then average across all
+    sigma2 = np.nanmean(np.nanvar(y, -2, ddof=1, keepdims=True), -1)
+
+    #center predictions
+    x_ms = x - np.nanmean(x, -1, keepdims=True)
+    #get average responses across trials
+    y = np.nanmean(y, -2, keepdims=True)
+    #center responses
+    y_ms = np.squeeze(y - np.nanmean(y, -1, keepdims=True))
+    #get sample covariance squared between prediction and responses
+    xy2 = np.nansum((x_ms*y_ms), -1, keepdims=True)**2
+    #get variance for model and responses
+    x2 = np.nansum(x_ms**2, -1, keepdims=True)
+    y2 = np.nansum(y_ms**2, -1, keepdims=True)
+    x2y2 = x2*y2
+
+    #classic r2
+    r2 = xy2/x2y2
+
+    #subtract off estimates of bias for numerator and denominator
+    ub_xy2 = xy2 - sigma2/n * x2
+    ub_x2y2 = x2y2 - (m-1) * sigma2/n * x2
+
+    #form ratio of unbiased estimates
+    r2er = ub_xy2/ub_x2y2
+
+    return np.squeeze(r2er), r2
+
+
+def compute_feve(target, output):
+    """
+    Computes the fraction of explainable variance explained as done in
+    Cadena et al 2019 and Burg et al 2020.
+    Args:
+        target: (images, repeats, neurons)    Observed neural responses
+        output: (images, repeats, neurons)  Model predictions
+    Returns:
+        feve: (neurons) Fraction of explainable variance explained
+    """
+
+    sqr_err, obs_var = [], []
+    for t, o in zip(target, output):  # loop over the images
+        sqr_err.append((t - o) ** 2)  # squared error per image
+        obs_var.append(np.nanvar(t, axis=0, ddof=1))  # conditional variance across repetitions
+
+    mse = np.nanmean(np.array(sqr_err), axis=(0, 1))  # mean squared error
+    mean_obs_var = np.mean(np.array(obs_var), axis=0)  # mean obs variance
+
+    total_var = np.nanvar(target, axis=(0, 1), ddof=1)  # total variance
+    explainable_var = (total_var - mean_obs_var)  # explainable variance
+
+    feve = 1 - (mse - mean_obs_var) / explainable_var  # fraction of explainable variance explained
+
+    return feve

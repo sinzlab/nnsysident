@@ -9,7 +9,9 @@ from nnfabrik.utility.nn_helpers import set_random_seed
 
 from ..utility import measures
 from ..utility.measures import get_correlations, get_poisson_loss
+from ..utility.loss_functions import AnscombeLoss
 
+mlmeasures.AnscombeLoss = AnscombeLoss
 
 def standard_trainer(
     model,
@@ -116,7 +118,7 @@ def standard_trainer(
             correlation=partial(get_correlations, model, dataloaders["validation"], device=device, per_neuron=False),
             poisson_loss=partial(
                 get_poisson_loss, model, dataloaders["validation"], device=device, per_neuron=False, avg=False
-            ),
+            )
         )
         if hasattr(model, "tracked_values"):
             tracker_dict.update(model.tracked_values)
