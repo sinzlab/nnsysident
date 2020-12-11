@@ -19,13 +19,13 @@ from nnsysident.tables.scoring import OracleScore, OracleScoreTransfer, R2erScor
 
 ### Experiment
 
-for experiment_name in ['Real, Direct, se2d_fullgaussian2d, 20457-5-9, AnscombeLoss']:
-
-    TrainedModel.progress(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name))
-
-    TrainedModel.populate(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name),
-                          reserve_jobs=True,
-                          order="random",)
+# for experiment_name in ['Real, Direct, se2d_fullgaussian2d, 20457-5-9, AnscombeLoss']:
+#
+#     TrainedModel.progress(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name))
+#
+#     TrainedModel.populate(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name),
+#                           reserve_jobs=True,
+#                           order="random",)
 #
 #
 # # Transfer Experiment
@@ -741,5 +741,5 @@ for experiment_name in ['Real, Direct, se2d_fullgaussian2d, 20457-5-9, AnscombeL
 #                     skip_duplicates=True)
 
 
-# OracleScore.populate(reserve_jobs=True)
-# OracleScoreTransfer.populate(reserve_jobs=True)
+OracleScore.populate(reserve_jobs=True)
+OracleScoreTransfer.populate(reserve_jobs=True)
