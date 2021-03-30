@@ -5,8 +5,8 @@ from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 
 from nnfabrik.utility.nn_helpers import set_random_seed
-from neuralpredictors.data.datasets import StaticImageSet, FileTreeDataset
-from neuralpredictors.data.transforms import (
+from neuralpredictors.data import StaticImageSet, FileTreeDataset
+from neuralpredictors.data import (
     Subsample,
     ToTensor,
     NeuroNormalizer,
@@ -23,7 +23,7 @@ except ImportError:
         return func
     print("dataport not available, will only be able to load data locally")
 
-    
+
 @fetch_non_existing_data
 def static_loader(
     path,
