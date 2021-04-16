@@ -5,8 +5,8 @@ from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 
 from nnfabrik.utility.nn_helpers import set_random_seed
-from neuralpredictors.data import StaticImageSet, FileTreeDataset
-from neuralpredictors.data import (
+from neuralpredictors.data.datasets import StaticImageSet, FileTreeDataset
+from neuralpredictors.data.transforms import (
     Subsample,
     ToTensor,
     NeuroNormalizer,
