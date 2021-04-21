@@ -23,7 +23,7 @@ except ImportError:
         return func
     print("dataport not available, will only be able to load data locally")
 
-    
+
 @fetch_non_existing_data
 def static_loader(
     path,
