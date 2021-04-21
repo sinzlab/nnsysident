@@ -5,6 +5,7 @@ import torch
 from nnfabrik.template import TrainedModelBase
 from nnfabrik.main import *
 from nnfabrik.builder import resolve_fn
+from nnfabrik.utility.dj_helpers import CustomSchema
 
 if not "stores" in dj.config:
     dj.config["stores"] = {}
@@ -17,7 +18,7 @@ dj.config["stores"]["minio_models"] = {
     "secret_key": os.environ["MINIO_SECRET_KEY"],
 }
 
-schema = dj.schema(dj.config.get("schema_name", "nnfabrik_core"))
+schema = CustomSchema(dj.config.get("schema_name", "nnfabrik_core"))
 
 
 @schema

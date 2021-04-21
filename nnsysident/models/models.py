@@ -3,7 +3,7 @@ from torch import nn
 import copy
 
 from nnfabrik.utility.nn_helpers import set_random_seed, get_dims_for_loader_dict
-from neuralpredictors.layers import (
+from neuralpredictors.layers.readouts import (
     MultipleFullGaussian2d,
     MultiplePointPooled2d,
     MultipleSpatialXFeatureLinear,

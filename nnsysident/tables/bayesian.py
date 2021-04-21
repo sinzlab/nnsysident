@@ -6,7 +6,7 @@ import os
 from collections import OrderedDict
 
 from nnfabrik.builder import resolve_model, resolve_data, get_data, get_model
-from nnfabrik.utility.dj_helpers import make_hash
+from nnfabrik.utility.dj_helpers import make_hash, CustomSchema
 from nnfabrik.utility.nnf_helper import cleanup_numpy_scalar
 from nnfabrik.template import TrainedModelBase
 from nnfabrik.main import Fabrikant
@@ -23,7 +23,7 @@ dj.config["stores"]["minio_models_bayesian"] = {
     "secret_key": os.environ["MINIO_SECRET_KEY"],
 }
 
-schema = dj.schema(dj.config.get("schema_name", "nnfabrik_core"))
+schema = CustomSchema(dj.config.get("schema_name", "nnfabrik_core"))
 print("Schema name: {}".format(dj.config["schema_name"]))
 
 
