@@ -30,6 +30,9 @@ class Encoder(nn.Module):
             x = self.readout(x, data_key=data_key)
         return nn.functional.elu(x + self.offset) + 1
 
+    def regularizer(self, data_key, detach_core=False):
+        return int(not detach_core) * self.core.regularizer() + self.readout.regularizer(data_key)
+
 
 def se2d_fullgaussian2d(
     dataloaders,
