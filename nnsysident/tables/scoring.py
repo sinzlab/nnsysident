@@ -1,12 +1,25 @@
 import datajoint as dj
 from .experiments import TrainedModel, TrainedModelTransfer
 from ..utility.measures import get_fraction_oracles, get_r2er, get_feve
-
-from nnfabrik.utility.dj_helpers import CustomSchema
 from nnfabrik.builder import get_data
 from nnfabrik.template import SummaryScoringBase
 
-schema = CustomSchema(dj.config.get("schema_name", "nnfabrik_core"))
+# create the context object
+try:
+    main = my_nnfabrik(os.environ["DJ_SCHEMA_NAME"])
+except:
+    raise ValueError(
+        " ".join(
+            [
+                "No schema name has been specified.",
+                "Specify it via",
+                "os.environ['DJ_SCHEMA_NAME']='schema_name'",
+            ]
+        )
+    )
+# set some local variables such that the tables can be directly importable elsewhere
+for key, val in main.__dict__.items():
+    locals()[key] = val
 
 
 class ScoringTable(SummaryScoringBase):
