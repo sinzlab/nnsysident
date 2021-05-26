@@ -1,8 +1,10 @@
+import os
 import datajoint as dj
 from .experiments import TrainedModel, TrainedModelTransfer
 from ..utility.measures import get_fraction_oracles, get_r2er, get_feve
 from nnfabrik.builder import get_data
-from nnfabrik.template import SummaryScoringBase
+from nnfabrik.templates.scoring import SummaryScoringBase
+from nnfabrik.main import my_nnfabrik
 
 # create the context object
 try:
