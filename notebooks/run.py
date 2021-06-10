@@ -7,16 +7,22 @@ dj.config["database.user"] = os.environ["DJ_USER"]
 dj.config["database.password"] = os.environ["DJ_PASS"]
 dj.config["enable_python_native_blobs"] = True
 
-from nnfabrik.main import my_nnfabrik
-name = "playground"
-my_nnfabrik(f"konstantin_nnsysident_{name}", context=locals())
+name = "interspecies_development"
+os.environ["DJ_SCHEMA_NAME"] = f"konstantin_nnsysident_{name}"
 
 from nnfabrik.utility.hypersearch import Bayesian
 from nnfabrik.main import *
 from nnsysident.tables.experiments import *
-from nnsysident.tables.scoring import OracleScore, OracleScoreTransfer, R2erScore, R2erScoreTransfer, FeveScore, FeveScoreTransfer
+from nnsysident.tables.scoring import (
+    OracleScore,
+    OracleScoreTransfer,
+    R2erScore,
+    R2erScoreTransfer,
+    FeveScore,
+    FeveScoreTransfer,
+)
 
-
+TrainedModel.populate(reserve_jobs=True, order="random")
 
 ### Experiment
 
