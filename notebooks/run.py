@@ -22,7 +22,6 @@ from nnsysident.tables.scoring import (
     FeveScoreTransfer,
 )
 
-TrainedModel.populate(reserve_jobs=True, order="random")
 
 ### Experiment
 
@@ -36,5 +35,16 @@ TrainedModel.populate(reserve_jobs=True, order="random")
 #
 #
 
-OracleScore.populate(reserve_jobs=True)
-OracleScoreTransfer.populate(reserve_jobs=True)
+### Transfer Experiment
+
+for experiment_name in ['Transfer between areas']:
+
+    TrainedModelTransfer.progress(ExperimentsTransfer.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name))
+
+    TrainedModelTransfer.populate(ExperimentsTransfer.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name),
+                                  reserve_jobs=True,
+                                  order="random",)
+
+
+# OracleScore.populate(reserve_jobs=True)
+# OracleScoreTransfer.populate(reserve_jobs=True)
