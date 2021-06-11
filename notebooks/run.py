@@ -37,14 +37,14 @@ from nnsysident.tables.scoring import (
 
 ### Transfer Experiment
 
-for experiment_name in ['Transfer between areas']:
+# for experiment_name in ['Transfer between areas']:
+#
+#     TrainedModelTransfer.progress(ExperimentsTransfer.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name))
+#
+#     TrainedModelTransfer.populate(ExperimentsTransfer.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name),
+#                                   reserve_jobs=True,
+#                                   order="random",)
 
-    TrainedModelTransfer.progress(ExperimentsTransfer.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name))
 
-    TrainedModelTransfer.populate(ExperimentsTransfer.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name),
-                                  reserve_jobs=True,
-                                  order="random",)
-
-
-# OracleScore.populate(reserve_jobs=True)
-# OracleScoreTransfer.populate(reserve_jobs=True)
+OracleScore.populate(reserve_jobs=True)
+OracleScoreTransfer.populate(reserve_jobs=True)
