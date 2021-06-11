@@ -193,7 +193,7 @@ class ScoringTable(SummaryScoringBase):
         dataloaders = (
             self.get_repeats_dataloaders(key=key) if self.measure_dataset == "test" else self.get_dataloaders(key=key)
         )
-        model = self.get_model(key=key)[1]
+        model = self.get_model(key=key)
         value = self.measure_function(model=model, dataloaders=dataloaders, device="cuda", **self.function_kwargs)
         if not isinstance(value, float) and len(value) == 1:
             value = value[0]
