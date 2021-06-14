@@ -25,15 +25,15 @@ from nnsysident.tables.scoring import (
 
 ### Experiment
 
-# for experiment_name in ['Real, Direct, se2d_fullgaussian2d, 20457-5-9, AnscombeLoss']:
-#
-#     TrainedModel.progress(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name))
-#
-#     TrainedModel.populate(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name),
-#                           reserve_jobs=True,
-#                           order="random",)
-#
-#
+for experiment_name in ['Direct cores on 1 area each']:
+
+    TrainedModel.progress(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name))
+
+    TrainedModel.populate(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name),
+                          reserve_jobs=True,
+                          order="random",)
+
+
 
 ### Transfer Experiment
 

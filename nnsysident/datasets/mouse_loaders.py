@@ -236,9 +236,10 @@ def static_loaders(
     for key in keys:
         dls[key] = OrderedDict({})
 
+    neuron_n = [neuron_n] * len(paths) if not isinstance(neuron_n, list) else neuron_n
     neuron_ids = [neuron_ids] if neuron_ids is None else neuron_ids
     image_ids = [image_ids] if image_ids is None else image_ids
-    for path, neuron_id, image_id in zip_longest(paths, neuron_ids, image_ids, fillvalue=None):
+    for path, neuron_id, image_id, n_neurons in zip_longest(paths, neuron_ids, image_ids, neuron_n, fillvalue=None):
         data_key, loaders = static_loader(
             path,
             batch_size,
@@ -248,7 +249,7 @@ def static_loaders(
             tier=tier,
             get_key=True,
             neuron_ids=neuron_id,
-            neuron_n=neuron_n,
+            neuron_n=n_neurons,
             exclude_neuron_n=exclude_neuron_n,
             neuron_base_seed=neuron_base_seed,
             image_ids=image_id,
