@@ -126,7 +126,7 @@ def static_loader(
         assert (
             len(dat.neurons.unit_ids) >= exclude_neuron_n + neuron_n
         ), "After excluding {} neurons, there are not {} neurons left".format(exclude_neuron_n, neuron_n)
-        neuron_ids = np.random.choice(dat.neurons.unit_ids, size=exclude_neuron_n + neuron_n, replace=False)[
+        neuron_ids = np.random.choice(dat.neurons.unit_ids[idx], size=exclude_neuron_n + neuron_n, replace=False)[
             exclude_neuron_n:
         ]
         np.random.set_state(random_state)
