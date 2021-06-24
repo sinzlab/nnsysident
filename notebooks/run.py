@@ -47,7 +47,7 @@ from nnsysident.tables.scoring import (
 
 
 #######################  Bayesian Search  ###################################
-areas = ["LM"]
+areas = ["V1"]
 paths = ["/notebooks/data/static24391-6-17-GrayImageNet-7bed7f7379d99271be5d144e5e59a8e7.zip"]
 
 dataset_fn = "nnsysident.datasets.mouse_loaders.static_loaders"
