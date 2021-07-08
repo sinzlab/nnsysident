@@ -92,6 +92,9 @@ def static_loader(
     assert any(
         [exclude_neuron_n == 0, neuron_base_seed is not None]
     ), "neuron_base_seed must be set when exclude_neuron_n is not 0"
+    assert not (neuron_base_seed is None and neuron_n is not None), "neuron_base_seed must be set when neuron_n is set"
+    assert not (image_base_seed is None and image_n is not None), "image_base_seed must be set when image_n is set"
+
     data_key = path.split("static")[-1].split(".")[0].replace("preproc", "").replace("_nobehavior", "")
 
     if file_tree:
