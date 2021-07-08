@@ -2,7 +2,7 @@ import os
 import numpy as np
 import datajoint as dj
 from .experiments import TrainedModel, TrainedModelTransfer
-from ..utility.measures import get_fraction_oracles, get_r2er, get_feve
+from ..utility.measures import get_fraction_oracles, get_r2er, get_feve, get_correlations
 from nnfabrik.builder import get_data
 # from nnfabrik.templates.scoring import SummaryScoringBase
 from nnfabrik.main import my_nnfabrik
@@ -183,7 +183,8 @@ class ScoringTable(SummaryScoringBase):
         dataset_fn, dataset_config = (self.dataset_table & key).fn_config
         dataset_config["return_test_sampler"] = True
         dataset_config["tier"] = "test"
-        dataset_config["seed"] = (self.trainedmodel_table().seed_table & key).fetch1("seed")
+        if 'seed' not in dataset_config:
+            dataset_config["seed"] = (self.trainedmodel_table().seed_table & key).fetch1("seed")
 
         dataloaders = get_data(dataset_fn, dataset_config)
         return dataloaders
@@ -219,6 +220,22 @@ class OracleScoreTransfer(ScoringTable):
     function_kwargs = {}
 
 
+@schema
+class TestCorr(ScoringTable):
+    trainedmodel_table = TrainedModel
+    measure_dataset = "test"
+    measure_attribute = "test_correlation"
+    measure_function = staticmethod(get_correlations)
+    function_kwargs = {}
+
+
+@schema
+class TestCorrTransfer(ScoringTable):
+    trainedmodel_table = TrainedModelTransfer
+    measure_dataset = "test"
+    measure_attribute = "test_correlation"
+    measure_function = staticmethod(get_correlations)
+    function_kwargs = {}
 
 @schema
 class R2erScore(ScoringTable):
