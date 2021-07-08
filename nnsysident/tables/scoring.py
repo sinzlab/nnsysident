@@ -192,12 +192,13 @@ class ScoringTable(SummaryScoringBase):
     def make(self, key):
 
         dataloaders = (
-            self.get_repeats_dataloaders(key=key) if self.measure_dataset == "test" else self.get_dataloaders(key=key)
+            self.get_repeats_dataloaders(key=key)["test"] if self.measure_dataset == "test" else self.get_dataloaders(key=key)
         )
         model = self.get_model(key=key)
         value = self.measure_function(model=model, dataloaders=dataloaders, device="cuda", **self.function_kwargs)
-        if not isinstance(value, float) and len(value) == 1:
-            value = value[0]
+        if not isinstance(value, np.float32):
+            if len(value) == 1:
+                value = value[0]
         key[self.measure_attribute] = value
         self.insert1(key, ignore_extra_fields=True)
 
@@ -226,7 +227,7 @@ class TestCorr(ScoringTable):
     measure_dataset = "test"
     measure_attribute = "test_correlation"
     measure_function = staticmethod(get_correlations)
-    function_kwargs = {}
+    function_kwargs = {"as_dict": False, "per_neuron": False}
 
 
 @schema
@@ -235,7 +236,7 @@ class TestCorrTransfer(ScoringTable):
     measure_dataset = "test"
     measure_attribute = "test_correlation"
     measure_function = staticmethod(get_correlations)
-    function_kwargs = {}
+    function_kwargs = {"as_dict": False, "per_neuron": False}
 
 @schema
 class R2erScore(ScoringTable):
