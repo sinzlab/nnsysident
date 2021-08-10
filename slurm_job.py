@@ -80,7 +80,7 @@ singularity run \
 --nv \
 --env-file .env \
 --no-home  \
---bind $SCRATCH:/notebooks/data/,$HOME/projects/:$HOME/projects/  \
+--bind $SCRATCH:/notebooks/data/,$HOME/projects/:$HOME/projects/,../nnsysident/:/src/nnsysident,../data_port:/src/data_port  \
 singularity.sif  \
 ./notebooks/run.py
         """
