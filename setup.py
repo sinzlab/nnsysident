@@ -11,5 +11,5 @@ setup(
     author="Konstantin-Klemens Lurz",
     author_email="konstantin.lurz@uni-tuebingen.de",
     packages=find_packages(exclude=[]),
-    install_requires=["neuralpredictors~=0.0.1"],
+    install_requires=["neuralpredictors"],
 )
