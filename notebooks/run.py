@@ -29,7 +29,7 @@ from nnsysident.tables.scoring import (
 
 ### Experiment
 
-for experiment_name in ['Direct cores on 1 area each (indiv. hyperparams)']:
+for experiment_name in ['Direct training on transfer dataset']:
 
     TrainedModel.progress(Experiments.Restrictions & 'seed in (1,2,3,4,5)' & 'experiment_name="{}"'.format(experiment_name))
 
@@ -40,7 +40,7 @@ for experiment_name in ['Direct cores on 1 area each (indiv. hyperparams)']:
 
 ### Transfer Experiment
 
-# for experiment_name in ['Transfer between areas']:
+# for experiment_name in ['Transfer between areas (indiv. hyperparams)']:
 #
 #     TrainedModelTransfer.progress(ExperimentsTransfer.Restrictions & 'seed = 1' & 'experiment_name="{}"'.format(experiment_name))
 #
