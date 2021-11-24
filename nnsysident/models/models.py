@@ -11,24 +11,17 @@ from neuralpredictors.layers.readouts import (
 )
 from ..utility.data_helpers import unpack_data_info
 from neuralpredictors.layers.cores import TransferLearningCore, SE2dCore
+from neuralpredictors.layers.encoders.firing_rate import FiringRateEncoder as Encoder
+from neuralpredictors.utils import get_module_output
 
 
-class Encoder(nn.Module):
-    def __init__(self, core, readout, elu_offset):
-        super().__init__()
-        self.core = core
-        self.readout = readout
-        self.offset = elu_offset
-
-    def forward(self, x, data_key=None, detach_core=False, **kwargs):
-        x = self.core(x)
-        if detach_core:
-            x = x.detach()
-        if "sample" in kwargs:
-            x = self.readout(x, data_key=data_key, sample=kwargs["sample"])
-        else:
-            x = self.readout(x, data_key=data_key)
-        return nn.functional.elu(x + self.offset) + 1
+def get_mean_activity_dict(dataloaders):
+    # initializing readout bias to mean response
+    mean_activity_dict = {}
+    for key, value in dataloaders.items():
+        _, targets = next(iter(value))
+        mean_activity_dict[key] = targets.mean(0)
+    return mean_activity_dict
 
 
 def se2d_fullgaussian2d(
@@ -196,10 +189,16 @@ def se2d_fullgaussian2d(
         linear=linear,
     )
 
+    # Specify the input shape for the readout
+    in_shape_dict = {k: get_module_output(core, in_shape)[1:] for k, in_shape in in_shapes_dict.items()}
+
+    # Use the mean activity to initialize the readout bias
+    mean_activity_dict = get_mean_activity_dict(dataloaders) if readout_bias and data_info is None else None
+
     readout = MultipleFullGaussian2d(
-        core,
-        in_shape_dict=in_shapes_dict,
+        in_shape_dict=in_shape_dict,
         n_neurons_dict=n_neurons_dict,
+        mean_activity_dict=mean_activity_dict,
         init_mu_range=init_mu_range,
         bias=readout_bias,
         init_sigma=init_sigma,
@@ -215,14 +214,7 @@ def se2d_fullgaussian2d(
         init_noise=init_noise,
         init_transform_scale=init_transform_scale,
     )
-
-    # initializing readout bias to mean response
-    if readout_bias and data_info is None:
-        for key, value in dataloaders.items():
-            _, targets = next(iter(value))
-            readout[key].bias.data = targets.mean(0)
-
-    model = Encoder(core, readout, elu_offset)
+    model = Encoder(core=core, readout=readout, elu_offset=elu_offset)
 
     return model
 
@@ -312,10 +304,16 @@ def se2d_pointpooled(
         linear=linear,
     )
 
+    # Specify the input shape for the readout
+    in_shape_dict = {k: get_module_output(core, in_shape)[1:] for k, in_shape in in_shapes_dict.items()}
+
+    # Use the mean activity to initialize the readout bias
+    mean_activity_dict = get_mean_activity_dict(dataloaders) if readout_bias and data_info is None else None
+
     readout = MultiplePointPooled2d(
-        core,
-        in_shape_dict=in_shapes_dict,
+        in_shape_dict=in_shape_dict,
         n_neurons_dict=n_neurons_dict,
+        mean_activity_dict=mean_activity_dict,
         pool_steps=pool_steps,
         pool_kern=pool_kern,
         bias=readout_bias,
@@ -323,13 +321,7 @@ def se2d_pointpooled(
         init_range=init_range,
     )
 
-    # initializing readout bias to mean response
-    if readout_bias and data_info is None:
-        for key, value in dataloaders.items():
-            _, targets = next(iter(value))
-            readout[key].bias.data = targets.mean(0)
-
-    model = Encoder(core, readout, elu_offset)
+    model = Encoder(core=core, readout=readout, elu_offset=elu_offset)
 
     return model
 
@@ -411,23 +403,23 @@ def se2d_spatialxfeaturelinear(
         linear=linear,
     )
 
+    # Specify the input shape for the readout
+    in_shape_dict = {k: get_module_output(core, in_shape)[1:] for k, in_shape in in_shapes_dict.items()}
+
+    # Use the mean activity to initialize the readout bias
+    mean_activity_dict = get_mean_activity_dict(dataloaders) if readout_bias and data_info is None else None
+
     readout = MultipleSpatialXFeatureLinear(
-        core,
-        in_shape_dict=in_shapes_dict,
+        in_shape_dict=in_shape_dict,
         n_neurons_dict=n_neurons_dict,
+        mean_activity_dict=mean_activity_dict,
         init_noise=init_noise,
         bias=readout_bias,
         gamma_readout=gamma_readout,
         normalize=normalize,
     )
 
-    # initializing readout bias to mean response
-    if readout_bias and data_info is None:
-        for key, value in dataloaders.items():
-            _, targets = next(iter(value))
-            readout[key].bias.data = targets.mean(0)
-
-    model = Encoder(core, readout, elu_offset)
+    model = Encoder(core=core, readout=readout, elu_offset=elu_offset)
 
     return model
 
@@ -531,10 +523,16 @@ def se2d_fullSXF(
         linear=linear,
     )
 
+    # Specify the input shape for the readout
+    in_shape_dict = {k: get_module_output(core, in_shape)[1:] for k, in_shape in in_shapes_dict.items()}
+
+    # Use the mean activity to initialize the readout bias
+    mean_activity_dict = get_mean_activity_dict(dataloaders) if readout_bias and data_info is None else None
+
     readout = MultipleFullSXF(
-        core,
-        in_shape_dict=in_shapes_dict,
+        in_shape_dict=in_shape_dict,
         n_neurons_dict=n_neurons_dict,
+        mean_activity_dict=mean_activity_dict,
         init_noise=init_noise,
         bias=readout_bias,
         gamma_readout=gamma_readout,
@@ -543,13 +541,7 @@ def se2d_fullSXF(
         shared_match_ids=shared_match_ids,
     )
 
-    # initializing readout bias to mean response
-    if readout_bias and data_info is None:
-        for key, value in dataloaders.items():
-            _, targets = next(iter(value))
-            readout[key].bias.data = targets.mean(0)
-
-    model = Encoder(core, readout, elu_offset)
+    model = Encoder(core=core, readout=readout, elu_offset=elu_offset)
 
     return model
 
@@ -690,10 +682,16 @@ def taskdriven_fullgaussian2d(
         fine_tune=fine_tune,
     )
 
+    # Specify the input shape for the readout
+    in_shape_dict = {k: get_module_output(core, in_shape)[1:] for k, in_shape in in_shapes_dict.items()}
+
+    # Use the mean activity to initialize the readout bias
+    mean_activity_dict = get_mean_activity_dict(dataloaders) if readout_bias and data_info is None else None
+
     readout = MultipleFullGaussian2d(
-        core,
-        in_shape_dict=in_shapes_dict,
+        in_shape_dict=in_shape_dict,
         n_neurons_dict=n_neurons_dict,
+        mean_activity_dict=mean_activity_dict,
         init_mu_range=init_mu_range,
         bias=readout_bias,
         init_sigma=init_sigma,
@@ -710,13 +708,7 @@ def taskdriven_fullgaussian2d(
         init_transform_scale=init_transform_scale,
     )
 
-    # initializing readout bias to mean response
-    if readout_bias and data_info is None:
-        for key, value in dataloaders.items():
-            _, targets = next(iter(value))
-            readout[key].bias.data = targets.mean(0)
-
-    model = Encoder(core, readout, elu_offset)
+    model = Encoder(core=core, readout=readout, elu_offset=elu_offset)
 
     return model
 
@@ -792,10 +784,16 @@ def taskdriven_fullSXF(
         fine_tune=fine_tune,
     )
 
+    # Specify the input shape for the readout
+    in_shape_dict = {k: get_module_output(core, in_shape)[1:] for k, in_shape in in_shapes_dict.items()}
+
+    # Use the mean activity to initialize the readout bias
+    mean_activity_dict = get_mean_activity_dict(dataloaders) if readout_bias and data_info is None else None
+
     readout = MultipleFullSXF(
-        core,
-        in_shape_dict=in_shapes_dict,
+        in_shape_dict=in_shape_dict,
         n_neurons_dict=n_neurons_dict,
+        mean_activity_dict=mean_activity_dict,
         init_noise=init_noise,
         bias=readout_bias,
         gamma_readout=gamma_readout,
@@ -804,12 +802,6 @@ def taskdriven_fullSXF(
         shared_match_ids=shared_match_ids,
     )
 
-    # initializing readout bias to mean response
-    if readout_bias and data_info is None:
-        for key, value in dataloaders.items():
-            _, targets = next(iter(value))
-            readout[key].bias.data = targets.mean(0)
-
-    model = Encoder(core, readout, elu_offset)
+    model = Encoder(core=core, readout=readout, elu_offset=elu_offset)
 
     return model
