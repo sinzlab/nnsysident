@@ -1,0 +1,31 @@
+BootStrap: shub
+From: sinzlab/pytorch-singularity:v3.8-torch1.7.0-dj0.12.7
+
+%files
+    setup.py
+    ../nnsysident /src/nnsysident
+    ../data_port /src/data_port
+
+%post
+    # upgrade pip
+    python -m pip install --upgrade pip
+
+    # install third-party libraries
+    python -m pip install --no-cache-dir install \
+            statsmodels \
+            ax_platform \
+            hiplot
+
+    # install internal published libraries
+    python -m pip install nnfabrik
+    python -m pip install neuralpredictors
+
+    # install internal unpublished libraries
+    python -m pip install -e /src/nnsysident
+    python -m pip install -e /src/data_port
+
+%startscript
+    exec "$@"
+
+%runscript
+    exec "$@"

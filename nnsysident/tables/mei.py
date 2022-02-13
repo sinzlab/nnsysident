@@ -12,12 +12,25 @@ from mei import mixins
 from mei.main import MEISeed
 from mei.modules import ConstrainedOutputModel
 
-from nnfabrik.utility.dj_helpers import CustomSchema
-
 Key = Dict[str, Any]
 Dataloaders = Dict[str, DataLoader]
 
-schema = dj.schema(dj.config.get("schema_name", "nnfabrik_core"))
+# create the context object
+try:
+    main = my_nnfabrik(os.environ["DJ_SCHEMA_NAME"])
+except:
+    raise ValueError(
+        " ".join(
+            [
+                "No schema name has been specified.",
+                "Specify it via",
+                "os.environ['DJ_SCHEMA_NAME']='schema_name'",
+            ]
+        )
+    )
+# set some local variables such that the tables can be directly importable elsewhere
+for key, val in main.__dict__.items():
+    locals()[key] = val
 
 
 class MouseSelectorTemplate(dj.Computed):
