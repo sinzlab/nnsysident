@@ -1,7 +1,10 @@
 version: "2.3"
 services:
   local_notebook:
-    build: ..
+    build:
+      dockerfile: ./nnsysident/Dockerfile
+      context: ../
+    image: nnsysident
     volumes:
       - ./notebooks/models:/notebooks/models
       - $HOME/data/static:/notebooks/data
@@ -14,7 +17,10 @@ services:
     env_file: .env
 
   local_debug:
-    build: ..
+    build:
+      dockerfile: ./nnsysident/Dockerfile
+      context: ../
+    image: nnsysident
     volumes:
       - ./notebooks/models:/notebooks/models
       - $HOME/data/static:/notebooks/data
@@ -26,7 +32,10 @@ services:
     env_file: .env
 
   gpu_job:
-    build: ..
+    build:
+      dockerfile: ./nnsysident/Dockerfile
+      context: ../
+    image: nnsysident
     volumes:
       - ./notebooks/models:/notebooks/models
       - /var/sinz-shared/mouse/toliaslab/static:/notebooks/data
@@ -42,7 +51,10 @@ services:
     command: run.py
 
   gpu_notebook:
-    build: ..
+    build:
+      dockerfile: ./nnsysident/Dockerfile
+      context: ../
+    image: nnsysident
     volumes:
       - ./notebooks/models:/notebooks/models
       - /var/sinz-shared/mouse/toliaslab/static:/notebooks/data

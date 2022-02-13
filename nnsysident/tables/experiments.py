@@ -1,8 +1,9 @@
+import os
 import datajoint as dj
 import tempfile
 import torch
 
-from nnfabrik.template import TrainedModelBase
+from nnfabrik.templates.trained_model import TrainedModelBase
 from nnfabrik.main import *
 from nnfabrik.builder import resolve_fn
 
@@ -17,16 +18,30 @@ dj.config["stores"]["minio_models"] = {
     "secret_key": os.environ["MINIO_SECRET_KEY"],
 }
 
-schema = dj.schema(dj.config.get("schema_name", "nnfabrik_core"))
+# create the context object
+try:
+    main = my_nnfabrik(os.environ["DJ_SCHEMA_NAME"])
+except:
+    raise ValueError(
+        " ".join(
+            [
+                "No schema name has been specified.",
+                "Specify it via",
+                "os.environ['DJ_SCHEMA_NAME']='schema_name'",
+            ]
+        )
+    )
+# set some local variables such that the tables can be directly importable elsewhere
+for key, val in main.__dict__.items():
+    locals()[key] = val
 
 
 @schema
 class TrainedModel(TrainedModelBase):
-    table_comment = "Trained models"
+    nnfabrik = main
     data_info_table = None
-
-    class ModelStorage(TrainedModelBase.ModelStorage):
-        storage = "minio_models"
+    table_comment = "Trained models"
+    storage = "minio_models"
 
 
 @schema
@@ -93,13 +108,10 @@ class Transfer(dj.Manual):
 
 @schema
 class TrainedModelTransfer(TrainedModelBase):
-    model_table = Model
-    dataset_table = Dataset
-    trainer_table = Trainer
-    seed_table = Seed
-    user_table = Fabrikant
+    nnfabrik = main
     data_info_table = None
     transfer_table = Transfer
+    storage = "minio_models"
 
     # delimitter to use when concatenating comments from model, dataset, and trainer tables
     comment_delimitter = "."
@@ -114,16 +126,16 @@ class TrainedModelTransfer(TrainedModelBase):
     def definition(self):
         definition = """
         # {table_comment}
-        -> self.model_table
-        -> self.dataset_table
-        -> self.trainer_table
-        -> self.seed_table
-        -> self.transfer_table
+        -> self().model_table
+        -> self().dataset_table
+        -> self().trainer_table
+        -> self().seed_table
+        -> self().transfer_table
         ---
-        comment='':                        varchar(768) # short description 
+        comment='':                        varchar(768) # short description
         score:                             float        # loss
         output:                            longblob     # trainer object's output
-        ->[nullable] self.user_table
+        ->[nullable] self().user_table
         trainedmodel_ts=CURRENT_TIMESTAMP: timestamp    # UTZ timestamp at time of insertion
         """.format(
             table_comment=self.table_comment
@@ -144,7 +156,9 @@ class TrainedModelTransfer(TrainedModelBase):
         transfer_fn = key.pop("transfer_fn")
         transfer_hash = key.pop("transfer_hash")
 
-        transfer_config = (self.transfer_table & 'transfer_fn="{}"'.format(transfer_fn) & 'transfer_hash="{}"'.format(transfer_hash)).fetch1("transfer_config")
+        transfer_config = (
+            self.transfer_table & 'transfer_fn="{}"'.format(transfer_fn) & 'transfer_hash="{}"'.format(transfer_hash)
+        ).fetch1("transfer_config")
         trainer_config = (self.trainer_table & 'trainer_hash="{}"'.format(key["trainer_hash"])).fetch1("trainer_config")
 
         # load everything
@@ -214,24 +228,29 @@ class Experiments(dj.Manual):
         experiment_restriction_ts=CURRENT_TIMESTAMP:   timestamp      # UTZ timestamp at time of insertion
         """
 
+    def add_entry(
+        self,
+        experiment_name,
+        experiment_fabrikant,
+        experiment_comment,
+        restrictions,
+        skip_duplicates=False,
+    ):
+        self.insert1(
+            dict(
+                experiment_name=experiment_name,
+                experiment_fabrikant=experiment_fabrikant,
+                experiment_comment=experiment_comment,
+            ),
+            skip_duplicates=skip_duplicates,
+        )
+
+        restrictions = [{**{"experiment_name": experiment_name}, **res} for res in restrictions]
+        self.Restrictions.insert(restrictions, skip_duplicates=skip_duplicates)
+
 
 @schema
-class ExperimentsTransfer(dj.Manual):
-    # Table to keep track of collections of trained networks that form an experiment.
-    # Instructions:
-    # 1) Make an entry in Experiments with an experiment name and description
-    # 2) Insert all combinations of dataset, model, trainer and transfer for this experiment name in Experiments.Restrictions.
-    # 2) Populate the TrainedModel table by restricting it with Experiments.Restrictions and the experiment name.
-    # 3) After training, join this table with TrainedModel and restrict by experiment name to get your results
-    definition = """
-    # This table contains the experiments and their descriptions
-    experiment_name: varchar(100)                     # name of experiment
-    ---
-    -> Fabrikant.proj(experiment_fabrikant='fabrikant_name')
-    experiment_comment='': varchar(2000)              # short description 
-    experiment_ts=CURRENT_TIMESTAMP:   timestamp      # UTZ timestamp at time of insertion
-    """
-
+class ExperimentsTransfer(Experiments):
     class Restrictions(dj.Part):
         definition = """
         # This table contains the corresponding hashes to filter out models which form the respective experiment

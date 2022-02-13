@@ -92,6 +92,9 @@ def static_loader(
     assert any(
         [exclude_neuron_n == 0, neuron_base_seed is not None]
     ), "neuron_base_seed must be set when exclude_neuron_n is not 0"
+    assert not (neuron_base_seed is None and neuron_n is not None), "neuron_base_seed must be set when neuron_n is set"
+    assert not (image_base_seed is None and image_n is not None), "image_base_seed must be set when image_n is set"
+
     data_key = path.split("static")[-1].split(".")[0].replace("preproc", "").replace("_nobehavior", "")
 
     if file_tree:
@@ -126,7 +129,7 @@ def static_loader(
         assert (
             len(dat.neurons.unit_ids) >= exclude_neuron_n + neuron_n
         ), "After excluding {} neurons, there are not {} neurons left".format(exclude_neuron_n, neuron_n)
-        neuron_ids = np.random.choice(dat.neurons.unit_ids, size=exclude_neuron_n + neuron_n, replace=False)[
+        neuron_ids = np.random.choice(dat.neurons.unit_ids[idx], size=exclude_neuron_n + neuron_n, replace=False)[
             exclude_neuron_n:
         ]
         np.random.set_state(random_state)
@@ -236,9 +239,10 @@ def static_loaders(
     for key in keys:
         dls[key] = OrderedDict({})
 
+    neuron_n = [neuron_n] * len(paths) if not isinstance(neuron_n, list) else neuron_n
     neuron_ids = [neuron_ids] if neuron_ids is None else neuron_ids
     image_ids = [image_ids] if image_ids is None else image_ids
-    for path, neuron_id, image_id in zip_longest(paths, neuron_ids, image_ids, fillvalue=None):
+    for path, neuron_id, image_id, n_neurons in zip_longest(paths, neuron_ids, image_ids, neuron_n, fillvalue=None):
         data_key, loaders = static_loader(
             path,
             batch_size,
@@ -248,7 +252,7 @@ def static_loaders(
             tier=tier,
             get_key=True,
             neuron_ids=neuron_id,
-            neuron_n=neuron_n,
+            neuron_n=n_neurons,
             exclude_neuron_n=exclude_neuron_n,
             neuron_base_seed=neuron_base_seed,
             image_ids=image_id,
