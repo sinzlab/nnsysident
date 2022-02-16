@@ -16,6 +16,7 @@ dj.config["stores"]["minio_models"] = {
     "location": "dj-store",
     "access_key": os.environ["MINIO_ACCESS_KEY"],
     "secret_key": os.environ["MINIO_SECRET_KEY"],
+    "secure": True,
 }
 
 # create the context object
