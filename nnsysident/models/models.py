@@ -1,18 +1,37 @@
 import numpy as np
-from torch import nn
 import copy
-
-from nnfabrik.utility.nn_helpers import set_random_seed, get_dims_for_loader_dict
-from neuralpredictors.layers.readouts import (
-    MultipleFullGaussian2d,
-    MultiplePointPooled2d,
-    MultipleSpatialXFeatureLinear,
-    MultipleFullSXF,
-)
 from ..utility.data_helpers import unpack_data_info
 from neuralpredictors.layers.cores import TransferLearningCore, SE2dCore
 from neuralpredictors.layers.encoders.firing_rate import FiringRateEncoder as Encoder
 from neuralpredictors.utils import get_module_output
+from nnfabrik.utility.nn_helpers import set_random_seed, get_dims_for_loader_dict
+from neuralpredictors.layers.readouts import (
+    MultiReadoutBase,
+    MultiReadoutSharedParametersBase,
+    FullGaussian2d,
+    PointPooled2d,
+    FullFactorized2d,
+)
+
+
+class MultiplePointPooled2d(MultiReadoutBase):
+    _base_readout = PointPooled2d
+
+
+class MultipleFullGaussian2d(MultiReadoutSharedParametersBase):
+    _base_readout = FullGaussian2d
+
+
+class MultipleSpatialXFeatureLinear(MultiReadoutBase):
+    _base_readout = FullFactorized2d
+
+
+class MultipleFullSXF(MultiReadoutSharedParametersBase):
+    _base_readout = FullFactorized2d
+
+
+class MultipleFullFactorized2d(MultiReadoutSharedParametersBase):
+    _base_readout = FullFactorized2d
 
 
 def get_mean_activity_dict(dataloaders):
