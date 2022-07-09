@@ -1,73 +1,31 @@
 version: "2.3"
 services:
-  local_notebook:
-    build:
-      dockerfile: ./nnsysident/Dockerfile
-      context: ../
-    image: nnsysident
-    volumes:
-      - ./notebooks/models:/notebooks/models
-      - $HOME/data/static:/notebooks/data
-      - ./notebooks:/notebooks
-      - ../nnsysident:/src/nnsysident
-      - ../data_port:/src/data_port
-      - /tmp/djcache:/cache
-    ports:
-      - "8888:8888"
-    env_file: .env
-
-  local_debug:
-    build:
-      dockerfile: ./nnsysident/Dockerfile
-      context: ../
-    image: nnsysident
-    volumes:
-      - ./notebooks/models:/notebooks/models
-      - $HOME/data/static:/notebooks/data
-      - ./notebooks:/notebooks
-      - ../nnsysident:/src/nnsysident
-      - ../data_port:/src/data_port
-      - /tmp/djcache:/cache
-    entrypoint: /usr/local/bin/python3
-    env_file: .env
-
   gpu_job:
+    privileged: true
     build:
       dockerfile: ./nnsysident/Dockerfile
       context: ../
     image: nnsysident
     volumes:
-      - ./notebooks/models:/notebooks/models
-      - /var/sinz-shared/mouse/toliaslab/static:/notebooks/data
-      - ./notebooks:/notebooks
-      - ../nnsysident:/src/nnsysident
+      - .:/project
       - ../data_port:/src/data_port
-      - ../allenobs:/src/allenobs
-      - ../mei:/notebooks/mei
-      - /tmp/djcache:/cache
+      - /var/sinz-shared/mouse/toliaslab/static:/project/notebooks/data
     env_file: .env
     runtime: nvidia
     entrypoint: /usr/local/bin/python3
     command: run.py
 
   gpu_notebook:
+    privileged: true
     build:
       dockerfile: ./nnsysident/Dockerfile
       context: ../
     image: nnsysident
     volumes:
-      - ./notebooks/models:/notebooks/models
-      - /var/sinz-shared/mouse/toliaslab/static:/notebooks/data
-      - /var/sinz-shared/monkey/toliaslab:/notebooks/data/monkey
-      - ./notebooks:/notebooks
-      - ../nnsysident:/src/nnsysident
+      - .:/project
       - ../data_port:/src/data_port
-      - ../allenobs:/src/allenobs
-      - ../mei:/notebooks/mei
-      - /tmp/djcache:/cache
-    env_file: .env
-    ports:
-      - "8888:8888"
+      - /var/sinz-shared/mouse/toliaslab/static:/project/notebooks/data
     environment:
       - NVIDIA_VISIBLE_DEVICES=0
+    env_file: .env
     runtime: nvidia
