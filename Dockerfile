@@ -4,7 +4,8 @@ RUN pip install --upgrade pip
 ADD ./data_port /src/data_port
 RUN pip install -e /src/data_port
 
-RUN pip install git+https://github.com/sinzlab/neuralpredictors.git@main
+#RUN pip install git+https://github.com/sinzlab/neuralpredictors.git@v0.3.0
+RUN pip install neuralpredictors
 
 RUN pip install nnfabrik==0.1.0
 RUN pip install figrid

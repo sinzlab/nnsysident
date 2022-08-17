@@ -25,7 +25,5 @@ services:
       - .:/project
       - ../data_port:/src/data_port
       - /var/sinz-shared/mouse/toliaslab/static:/project/notebooks/data
-    environment:
-      - NVIDIA_VISIBLE_DEVICES=0
     env_file: .env
     runtime: nvidia
