@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nnsysident"
+version = "0.0.0"
+description = "Identifying and modelling the biological visual system with deep neural networks"
+dependencies = [
+    "numpy>=1.20",
+    "torch",
+    "tqdm",
+    "pandas",
+    "h5py",
+    "scipy",
+]
+
+[[project.authors]]
+name = "Konstantin-Klemens Lurz"
+email = "konstantin.lurz@uni-tuebingen.de"
+
+[project.urls]
+GitHub = "https://github.com/sinzlab/nnsysident"
+
+[tool.setuptools]
+packages = ["nnsysident"]
+
+[tool.coverage.run]
+branch = true
+source = ["nnsysident"]
+
+[tool.mypy]
+python_version = "3.8"
+files = ["nnsysident"]
+exclude = "old_\\w+\\.py$"
+strict = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_decorators = true
+
+[[tool.mypy.overrides]]
+module = [
+    "h5py",
+    "scipy.signal",
+    "scipy.special",
+    "skimage.transform",
+    "torchvision",
+    "tqdm"
+]
+ignore_missing_imports = true
