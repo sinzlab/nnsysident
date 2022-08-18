@@ -138,7 +138,11 @@ def se2d_fullgaussian2d(
         in_shapes_dict = {k: v[in_name] for k, v in session_shape_dict.items()}
         input_channels = [v[in_name][1] for v in session_shape_dict.values()]
 
-    core_input_channels = list(input_channels.values())[0] if isinstance(input_channels, dict) else input_channels[0]
+    core_input_channels = (
+        list(input_channels.values())[0]
+        if isinstance(input_channels, dict)
+        else input_channels[0]
+    )
 
     source_grids = None
     grid_mean_predictor_type = None
@@ -152,7 +156,9 @@ def se2d_fullgaussian2d(
                 # real data
                 try:
                     if v.dataset.neurons.animal_ids[0] != 0:
-                        source_grids[k] = v.dataset.neurons.cell_motor_coordinates[:, :input_dim]
+                        source_grids[k] = v.dataset.neurons.cell_motor_coordinates[
+                            :, :input_dim
+                        ]
                     # simulated data -> get random linear non-degenerate transform of true positions
                     else:
                         source_grid_true = v.dataset.neurons.center[:, :input_dim]
@@ -164,18 +170,30 @@ def se2d_fullgaussian2d(
                             det = np.linalg.det(matrix)
                             loops += 1
                         assert det > 5.0, "Did not find a non-degenerate matrix"
-                        source_grids[k] = np.add((matrix @ source_grid_true.T).T, grid_bias)
+                        source_grids[k] = np.add(
+                            (matrix @ source_grid_true.T).T, grid_bias
+                        )
                 except FileNotFoundError:
-                    print("Dataset type is not recognized to be from Baylor College of Medicine.")
-                    source_grids[k] = v.dataset.neurons.cell_motor_coordinates[:, :input_dim]
+                    print(
+                        "Dataset type is not recognized to be from Baylor College of Medicine."
+                    )
+                    source_grids[k] = v.dataset.neurons.cell_motor_coordinates[
+                        :, :input_dim
+                    ]
         elif grid_mean_predictor_type == "shared":
             pass
         else:
-            raise ValueError("Grid mean predictor type {} not understood.".format(grid_mean_predictor_type))
+            raise ValueError(
+                "Grid mean predictor type {} not understood.".format(
+                    grid_mean_predictor_type
+                )
+            )
 
     shared_match_ids = None
     if share_features or share_grid:
-        shared_match_ids = {k: v.dataset.neurons.multi_match_id for k, v in dataloaders.items()}
+        shared_match_ids = {
+            k: v.dataset.neurons.multi_match_id for k, v in dataloaders.items()
+        }
         all_multi_unit_ids = set(np.hstack(shared_match_ids.values()))
 
         for match_id in shared_match_ids.values():
@@ -296,7 +314,11 @@ def se2d_pointpooled(
         in_shapes_dict = {k: v[in_name] for k, v in session_shape_dict.items()}
         input_channels = [v[in_name][1] for v in session_shape_dict.values()]
 
-    core_input_channels = list(input_channels.values())[0] if isinstance(input_channels, dict) else input_channels[0]
+    core_input_channels = (
+        list(input_channels.values())[0]
+        if isinstance(input_channels, dict)
+        else input_channels[0]
+    )
 
     set_random_seed(seed)
 
@@ -395,7 +417,11 @@ def se2d_spatialxfeaturelinear(
         in_shapes_dict = {k: v[in_name] for k, v in session_shape_dict.items()}
         input_channels = [v[in_name][1] for v in session_shape_dict.values()]
 
-    core_input_channels = list(input_channels.values())[0] if isinstance(input_channels, dict) else input_channels[0]
+    core_input_channels = (
+        list(input_channels.values())[0]
+        if isinstance(input_channels, dict)
+        else input_channels[0]
+    )
 
     set_random_seed(seed)
 
@@ -505,11 +531,17 @@ def se2d_fullSXF(
         in_shapes_dict = {k: v[in_name] for k, v in session_shape_dict.items()}
         input_channels = [v[in_name][1] for v in session_shape_dict.values()]
 
-    core_input_channels = list(input_channels.values())[0] if isinstance(input_channels, dict) else input_channels[0]
+    core_input_channels = (
+        list(input_channels.values())[0]
+        if isinstance(input_channels, dict)
+        else input_channels[0]
+    )
 
     shared_match_ids = None
     if share_features:
-        shared_match_ids = {k: v.dataset.neurons.multi_match_id for k, v in dataloaders.items()}
+        shared_match_ids = {
+            k: v.dataset.neurons.multi_match_id for k, v in dataloaders.items()
+        }
         all_multi_unit_ids = set(np.hstack(shared_match_ids.values()))
 
         for match_id in shared_match_ids.values():
@@ -643,7 +675,11 @@ def taskdriven_fullgaussian2d(
         in_shapes_dict = {k: v[in_name] for k, v in session_shape_dict.items()}
         input_channels = [v[in_name][1] for v in session_shape_dict.values()]
 
-    core_input_channels = list(input_channels.values())[0] if isinstance(input_channels, dict) else input_channels[0]
+    core_input_channels = (
+        list(input_channels.values())[0]
+        if isinstance(input_channels, dict)
+        else input_channels[0]
+    )
 
     source_grids = None
     grid_mean_predictor_type = None
@@ -657,7 +693,9 @@ def taskdriven_fullgaussian2d(
                 # real data
                 try:
                     if v.dataset.neurons.animal_ids[0] != 0:
-                        source_grids[k] = v.dataset.neurons.cell_motor_coordinates[:, :input_dim]
+                        source_grids[k] = v.dataset.neurons.cell_motor_coordinates[
+                            :, :input_dim
+                        ]
                     # simulated data -> get random linear non-degenerate transform of true positions
                     else:
                         source_grid_true = v.dataset.neurons.center[:, :input_dim]
@@ -669,18 +707,30 @@ def taskdriven_fullgaussian2d(
                             det = np.linalg.det(matrix)
                             loops += 1
                         assert det > 5.0, "Did not find a non-degenerate matrix"
-                        source_grids[k] = np.add((matrix @ source_grid_true.T).T, grid_bias)
+                        source_grids[k] = np.add(
+                            (matrix @ source_grid_true.T).T, grid_bias
+                        )
                 except FileNotFoundError:
-                    print("Dataset type is not recognized to be from Baylor College of Medicine.")
-                    source_grids[k] = v.dataset.neurons.cell_motor_coordinates[:, :input_dim]
+                    print(
+                        "Dataset type is not recognized to be from Baylor College of Medicine."
+                    )
+                    source_grids[k] = v.dataset.neurons.cell_motor_coordinates[
+                        :, :input_dim
+                    ]
         elif grid_mean_predictor_type == "shared":
             pass
         else:
-            raise ValueError("Grid mean predictor type {} not understood.".format(grid_mean_predictor_type))
+            raise ValueError(
+                "Grid mean predictor type {} not understood.".format(
+                    grid_mean_predictor_type
+                )
+            )
 
     shared_match_ids = None
     if share_features or share_grid:
-        shared_match_ids = {k: v.dataset.neurons.multi_match_id for k, v in dataloaders.items()}
+        shared_match_ids = {
+            k: v.dataset.neurons.multi_match_id for k, v in dataloaders.items()
+        }
         all_multi_unit_ids = set(np.hstack(shared_match_ids.values()))
 
         for match_id in shared_match_ids.values():
@@ -778,11 +828,17 @@ def taskdriven_fullSXF(
         in_shapes_dict = {k: v[in_name] for k, v in session_shape_dict.items()}
         input_channels = [v[in_name][1] for v in session_shape_dict.values()]
 
-    core_input_channels = list(input_channels.values())[0] if isinstance(input_channels, dict) else input_channels[0]
+    core_input_channels = (
+        list(input_channels.values())[0]
+        if isinstance(input_channels, dict)
+        else input_channels[0]
+    )
 
     shared_match_ids = None
     if share_features:
-        shared_match_ids = {k: v.dataset.neurons.multi_match_id for k, v in dataloaders.items()}
+        shared_match_ids = {
+            k: v.dataset.neurons.multi_match_id for k, v in dataloaders.items()
+        }
         all_multi_unit_ids = set(np.hstack(shared_match_ids.values()))
 
         for match_id in shared_match_ids.values():
