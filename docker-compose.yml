@@ -1,7 +1,6 @@
 version: "2.3"
 services:
   gpu_job:
-    privileged: true
     build:
       dockerfile: ./nnsysident/Dockerfile
       context: ../
@@ -16,7 +15,6 @@ services:
     command: run.py
 
   gpu_notebook:
-    privileged: true
     build:
       dockerfile: ./nnsysident/Dockerfile
       context: ../
