@@ -8,6 +8,7 @@ services:
     volumes:
       - .:/project
       - ../data_port:/src/data_port
+      - ../neuralmetrics:/src/neuralmetrics
       - /var/sinz-shared/mouse/toliaslab/static:/notebooks/data
       - /var/sinz-shared/mouse/toliaslab/static:/project/notebooks/data
     env_file: .env
@@ -20,6 +21,7 @@ services:
     image: nnsysident
     volumes:
       - .:/src/nnsysident
+      - ../neuralmetrics:/src/neuralmetrics
       - .:/notebooks
       - /var/sinz-shared/mouse/toliaslab/static:/notebooks/data
     env_file: .env
