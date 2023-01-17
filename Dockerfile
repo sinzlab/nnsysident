@@ -5,6 +5,9 @@ RUN pip install --upgrade setuptools
 ADD ./neuralmetrics /src/neuralmetrics
 RUN pip install -e /src/neuralmetrics
 
+ADD ./mei /src/mei
+RUN pip install -e /src/mei
+
 ADD ./data_port /src/data_port
 RUN pip install -e /src/data_port
 
