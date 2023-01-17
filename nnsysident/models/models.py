@@ -60,7 +60,11 @@ def se2d_fullgaussian2d(
     final_nonlinearity=True,
     momentum=0.9,
     pad_input=False,
+
     batch_norm=True,
+    batch_norm_scale=True,
+    independent_bn_bias=False,
+
     hidden_dilation=1,
     laplace_padding=None,
     input_regularizer="LaplaceL2norm",
@@ -185,7 +189,9 @@ def se2d_fullgaussian2d(
 
     set_random_seed(seed)
 
-    core = SE2dCore(
+    #TODO: Change back to SE2dCore once Konsti fixed Neuralpredictor
+
+    core = Stacked2dCore(
         input_channels=core_input_channels,
         hidden_channels=hidden_channels,
         input_kern=input_kern,
@@ -202,11 +208,36 @@ def se2d_fullgaussian2d(
         laplace_padding=laplace_padding,
         input_regularizer=input_regularizer,
         stack=stack,
-        se_reduction=se_reduction,
-        n_se_blocks=n_se_blocks,
+        # se_reduction=se_reduction,
+        # n_se_blocks=n_se_blocks,
         depth_separable=depth_separable,
         linear=linear,
+        batch_norm_scale=batch_norm_scale,
+        independent_bn_bias=independent_bn_bias,
     )
+
+    # core = SE2dCore(
+    #     input_channels=core_input_channels,
+    #     hidden_channels=hidden_channels,
+    #     input_kern=input_kern,
+    #     hidden_kern=hidden_kern,
+    #     layers=layers,
+    #     gamma_input=gamma_input,
+    #     skip=skip,
+    #     final_nonlinearity=final_nonlinearity,
+    #     bias=bias,
+    #     momentum=momentum,
+    #     pad_input=pad_input,
+    #     batch_norm=batch_norm,
+    #     hidden_dilation=hidden_dilation,
+    #     laplace_padding=laplace_padding,
+    #     input_regularizer=input_regularizer,
+    #     stack=stack,
+    #     se_reduction=se_reduction,
+    #     n_se_blocks=n_se_blocks,
+    #     depth_separable=depth_separable,
+    #     linear=linear,
+    # )
 
     # Specify the input shape for the readout
     in_shape_dict = {k: get_module_output(core, in_shape)[1:] for k, in_shape in in_shapes_dict.items()}
