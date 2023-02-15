@@ -3,8 +3,12 @@ import numpy as np
 import torch
 from neuralpredictors.measures import corr
 from neuralpredictors.training import eval_state, device_state
+from neuralmetrics.training import losses
+from neuralpredictors.measures.modules import PoissonLoss
 import types
 import contextlib
+
+from neuralmetrics.training import losses
 
 
 def model_predictions_repeats(model, dataloader, data_key, device="cpu", broadcast_to_target=False):
@@ -31,7 +35,7 @@ def model_predictions_repeats(model, dataloader, data_key, device="cpu", broadca
     # Forward unique images once:
     with eval_state(model) if not isinstance(model, types.FunctionType) else contextlib.nullcontext():
         with device_state(model, device) if not isinstance(model, types.FunctionType) else contextlib.nullcontext():
-            output = model(unique_images.to(device), data_key=data_key).detach().cpu()
+            output = model.predict_mean(unique_images.to(device), data_key=data_key).detach().cpu()
 
     output = output.numpy()
 
@@ -49,17 +53,19 @@ def model_predictions(model, dataloader, data_key, device="cpu"):
         output: responses as predicted by the network
     """
 
-    target, output = torch.empty(0), torch.empty(0)
-    for images, responses in dataloader:
-        if len(images.shape) == 5:
-            images = images.squeeze(dim=0)
-            responses = responses.squeeze(dim=0)
-        with torch.no_grad():
-            with device_state(model, device) if not isinstance(model, types.FunctionType) else contextlib.nullcontext():
-                output = torch.cat((output, (model(images.to(device), data_key=data_key).detach().cpu())), dim=0)
-            target = torch.cat((target, responses.detach().cpu()), dim=0)
+    with torch.no_grad():
+        with device_state(model, device) if not isinstance(model, types.FunctionType) else contextlib.nullcontext():
+            outputs = np.vstack([model.predict_mean(b[0], data_key=data_key).cpu().data.numpy() for b in dataloader])
+            targets = np.vstack(
+                [
+                    model.transform(b[1], data_key=data_key)[0].cpu().data.numpy()
+                    if hasattr(model, "transform")
+                    else b[1].cpu().data.numpy()
+                    for b in dataloader
+                ]
+            )
 
-    return target.numpy(), output.numpy()
+    return targets, outputs
 
 
 def get_avg_correlations(model, dataloaders, device="cpu", as_dict=False, per_neuron=True, **kwargs):
@@ -75,7 +81,11 @@ def get_avg_correlations(model, dataloaders, device="cpu", as_dict=False, per_ne
 
         # Compute correlation with average targets
         target, output = model_predictions_repeats(
-            dataloader=loader, model=model, data_key=k, device=device, broadcast_to_target=False
+            dataloader=loader,
+            model=model,
+            data_key=k,
+            device=device,
+            broadcast_to_target=False,
         )
         target_mean = np.array([t.mean(axis=0) for t in target])
         correlations[k] = corr(target_mean, output, axis=0)
@@ -98,6 +108,7 @@ def get_correlations(model, dataloaders, device="cpu", as_dict=False, per_neuron
     correlations = {}
     with eval_state(model) if not isinstance(model, types.FunctionType) else contextlib.nullcontext():
         for k, v in dataloaders.items():
+
             target, output = model_predictions(dataloader=v, model=model, data_key=k, device=device)
             correlations[k] = corr(target, output, axis=0)
 
@@ -114,23 +125,45 @@ def get_correlations(model, dataloaders, device="cpu", as_dict=False, per_neuron
     return correlations
 
 
-def get_poisson_loss(model, dataloaders, device="cpu", as_dict=False, avg=False, per_neuron=True, eps=1e-12):
-    poisson_loss = {}
+def get_loss(
+        model,
+        dataloaders,
+        loss_function,
+        device="cpu",
+        as_dict=False,
+        avg=False,
+        per_neuron=True,
+):
+    loss_vals = {}
+    if loss_function == "PoissonLoss":
+        loss_fn = PoissonLoss(avg=avg, per_neuron=per_neuron)
+    else:
+        loss_fn = getattr(losses, loss_function)(avg=avg, per_neuron=per_neuron)
+
     with eval_state(model) if not isinstance(model, types.FunctionType) else contextlib.nullcontext():
         for k, v in dataloaders.items():
-            target, output = model_predictions(dataloader=v, model=model, data_key=k, device=device)
-            loss = output - target * np.log(output + eps)
-            poisson_loss[k] = np.mean(loss, axis=0) if avg else np.sum(loss, axis=0)
+            if hasattr(model, "transform"):
+                loss = np.vstack(
+                    [
+                        loss_fn(model, k, target=b[1].to(device), output=model(b[0].to(device), data_key=k)).cpu().data.numpy()
+                        for b in v
+                    ]
+                )
+            else:
+                loss = np.vstack(
+                    [loss_fn(target=b[1].to(device), output=model(b[0].to(device), data_key=k)).cpu().data.numpy() for b in v]
+                )
+            loss_vals[k] = np.mean(loss, axis=0) if avg else np.sum(loss, axis=0)
     if as_dict:
-        return poisson_loss
+        return loss_vals
     else:
         if per_neuron:
-            return np.hstack([v for v in poisson_loss.values()])
+            return np.hstack([v for v in loss_vals.values()])
         else:
             return (
-                np.mean(np.hstack([v for v in poisson_loss.values()]))
+                np.mean(np.hstack([v for v in loss_vals.values()]))
                 if avg
-                else np.sum(np.hstack([v for v in poisson_loss.values()]))
+                else np.sum(np.hstack([v for v in loss_vals.values()]))
             )
 
 
