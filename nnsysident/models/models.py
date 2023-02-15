@@ -1,8 +1,8 @@
 import numpy as np
 import copy
 from ..utility.data_helpers import unpack_data_info
-from neuralpredictors.layers.cores import TransferLearningCore, SE2dCore
-from neuralpredictors.layers.encoders.firing_rate import FiringRateEncoder as Encoder
+from neuralpredictors.layers.cores import TransferLearningCore, SE2dCore, Stacked2dCore
+from neuralpredictors.layers.encoders.firing_rate import FiringRateEncoder
 from neuralpredictors.utils import get_module_output
 from nnfabrik.utility.nn_helpers import set_random_seed, get_dims_for_loader_dict
 from neuralpredictors.layers.readouts import (
@@ -12,6 +12,17 @@ from neuralpredictors.layers.readouts import (
     PointPooled2d,
     FullFactorized2d,
 )
+
+
+class Encoder(FiringRateEncoder):
+    def __int__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def predict_mean(self, x, data_key, *args, **kwargs):
+        return self.forward(x, *args, data_key=data_key, **kwargs)
+
+    def predict_variance(self, x, data_key, *args, **kwargs):
+        return self.forward(x, *args, data_key=data_key, **kwargs)
 
 
 class MultiplePointPooled2d(MultiReadoutBase):
