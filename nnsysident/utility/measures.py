@@ -23,13 +23,35 @@ def model_predictions_repeats(model, dataloader, data_key, device="cpu", broadca
 
     target = []
     unique_images = torch.empty(0)
-    for images, responses in dataloader:
+    for datapoint in dataloader:
+        images = datapoint.images
+        responses = datapoint.responses
+
         if len(images.shape) == 5:
             images = images.squeeze(dim=0)
             responses = responses.squeeze(dim=0)
 
-        assert torch.all(torch.eq(images[-1,], images[0,])), "All images in the batch should be equal"
-        unique_images = torch.cat((unique_images, images[0:1,].detach().cpu()), dim=0)
+        assert torch.all(
+            torch.eq(
+                images[
+                    -1,
+                ],
+                images[
+                    0,
+                ],
+            )
+        ), "All images in the batch should be equal"
+        unique_images = torch.cat(
+            (
+                unique_images,
+                images[
+                    0:1,
+                ]
+                .detach()
+                .cpu(),
+            ),
+            dim=0,
+        )
         target.append(responses.detach().cpu().numpy())
 
     # Forward unique images once:
@@ -55,15 +77,22 @@ def model_predictions(model, dataloader, data_key, device="cpu"):
 
     with torch.no_grad():
         with device_state(model, device) if not isinstance(model, types.FunctionType) else contextlib.nullcontext():
-            outputs = np.vstack([model.predict_mean(b[0], data_key=data_key).cpu().data.numpy() for b in dataloader])
-            targets = np.vstack(
-                [
-                    model.transform(b[1], data_key=data_key)[0].cpu().data.numpy()
+            outputs, targets = [], []
+            for b in dataloader:
+                pupil_center = b.pupil_center if hasattr(b, "pupil_center") else None
+                behavior = b.behavior if hasattr(b, "behavior") else None
+                outputs.append(
+                    model.predict_mean(b.images, data_key=data_key, pupil_center=pupil_center, behavior=behavior)
+                    .cpu()
+                    .data.numpy()
+                )
+                targets.append(
+                    model.transform(b.responses, data_key=data_key)[0].cpu().data.numpy()
                     if hasattr(model, "transform")
-                    else b[1].cpu().data.numpy()
-                    for b in dataloader
-                ]
-            )
+                    else b.responses.cpu().data.numpy()
+                )
+            outputs = np.vstack(outputs)
+            targets = np.vstack(targets)
 
     return targets, outputs
 
@@ -126,13 +155,13 @@ def get_correlations(model, dataloaders, device="cpu", as_dict=False, per_neuron
 
 
 def get_loss(
-        model,
-        dataloaders,
-        loss_function,
-        device="cpu",
-        as_dict=False,
-        avg=False,
-        per_neuron=True,
+    model,
+    dataloaders,
+    loss_function,
+    device="cpu",
+    as_dict=False,
+    avg=False,
+    per_neuron=True,
 ):
     loss_vals = {}
     if loss_function == "PoissonLoss":
@@ -142,17 +171,30 @@ def get_loss(
 
     with eval_state(model) if not isinstance(model, types.FunctionType) else contextlib.nullcontext():
         for k, v in dataloaders.items():
-            if hasattr(model, "transform"):
-                loss = np.vstack(
-                    [
-                        loss_fn(model, k, target=b[1].to(device), output=model(b[0].to(device), data_key=k)).cpu().data.numpy()
-                        for b in v
-                    ]
-                )
-            else:
-                loss = np.vstack(
-                    [loss_fn(target=b[1].to(device), output=model(b[0].to(device), data_key=k)).cpu().data.numpy() for b in v]
-                )
+            loss = []
+            for b in v:
+                pupil_center = b.pupil_center if hasattr(b, "pupil_center") else None
+                behavior = b.behavior if hasattr(b, "behavior") else None
+                if hasattr(model, "transform"):
+                    loss.append(
+                        loss_fn(
+                            target=model.transform(b.responses.to(device), data_key=k),
+                            output=model(b.images.to(device), data_key=k, pupil_center=pupil_center, behavior=behavior),
+                        )
+                        .cpu()
+                        .data.numpy()
+                    )
+                else:
+                    loss.append(
+                        loss_fn(
+                            target=b.responses.to(device),
+                            output=model(b.images.to(device), data_key=k, pupil_center=pupil_center, behavior=behavior),
+                        )
+                        .cpu()
+                        .data.numpy()
+                    )
+
+            loss = np.vstack(loss)
             loss_vals[k] = np.mean(loss, axis=0) if avg else np.sum(loss, axis=0)
     if as_dict:
         return loss_vals
@@ -275,7 +317,7 @@ def get_fraction_oracles(model, dataloaders, device="cpu", corrected=False):
 
 def get_r2er(model, dataloaders, device="cpu"):
     dataloaders = dataloaders["test"] if "test" in dataloaders else dataloaders
-    r2er={}
+    r2er = {}
     for data_key, dataloader in dataloaders.items():
         # get targets and predictions
         target, output = model_predictions_repeats(model, dataloader, data_key, device=device)
@@ -293,7 +335,7 @@ def get_r2er(model, dataloaders, device="cpu"):
 
 def get_feve(model, dataloaders, device="cpu"):
     dataloaders = dataloaders["test"] if "test" in dataloaders else dataloaders
-    feve={}
+    feve = {}
     for data_key, dataloader in dataloaders.items():
         # get targets and predictions
         target, output = model_predictions_repeats(model, dataloader, data_key, device=device)
@@ -425,7 +467,7 @@ def get_model_rf_size(model_config):
     return rf_size
 
 
-def get_predictions(model, dataloaders, device="cpu", as_dict=False, per_neuron=True, test_data=True, **kwargs):
+def get_predictions(model, dataloaders, device="cpu", as_dict=False, per_neuron=True, test_data=False, **kwargs):
     predictions = {}
     with eval_state(model) if not isinstance(model, types.FunctionType) else contextlib.nullcontext():
         for k, v in dataloaders.items():
@@ -440,7 +482,7 @@ def get_predictions(model, dataloaders, device="cpu", as_dict=False, per_neuron=
     return predictions
 
 
-def get_targets(model, dataloaders, device="cpu", as_dict=True, per_neuron=True, test_data=True, **kwargs):
+def get_targets(model, dataloaders, device="cpu", as_dict=True, per_neuron=True, test_data=False, **kwargs):
     responses = {}
     with eval_state(model) if not isinstance(model, types.FunctionType) else contextlib.nullcontext():
         for k, v in dataloaders.items():
@@ -470,7 +512,7 @@ def fill_response_repeats(x, fillval=np.nan):
     shape = np.array(x)[lens == lens.max()][0].shape
     for idx in np.where(lens != lens.max())[0]:
         helper_array = np.full(shape, fillval)
-        helper_array[:lens[idx], :] = x[idx]
+        helper_array[: lens[idx], :] = x[idx]
         x[idx] = helper_array
     return np.stack(x)
 
@@ -497,28 +539,28 @@ def compute_r2er_n2m(x, y):
     # estimate trial to trial variability for each stim then average across all
     sigma2 = np.nanmean(np.nanvar(y, -2, ddof=1, keepdims=True), -1)
 
-    #center predictions
+    # center predictions
     x_ms = x - np.nanmean(x, -1, keepdims=True)
-    #get average responses across trials
+    # get average responses across trials
     y = np.nanmean(y, -2, keepdims=True)
-    #center responses
+    # center responses
     y_ms = np.squeeze(y - np.nanmean(y, -1, keepdims=True))
-    #get sample covariance squared between prediction and responses
-    xy2 = np.nansum((x_ms*y_ms), -1, keepdims=True)**2
-    #get variance for model and responses
+    # get sample covariance squared between prediction and responses
+    xy2 = np.nansum((x_ms * y_ms), -1, keepdims=True) ** 2
+    # get variance for model and responses
     x2 = np.nansum(x_ms**2, -1, keepdims=True)
     y2 = np.nansum(y_ms**2, -1, keepdims=True)
-    x2y2 = x2*y2
+    x2y2 = x2 * y2
 
-    #classic r2
-    r2 = xy2/x2y2
+    # classic r2
+    r2 = xy2 / x2y2
 
-    #subtract off estimates of bias for numerator and denominator
-    ub_xy2 = xy2 - sigma2/n * x2
-    ub_x2y2 = x2y2 - (m-1) * sigma2/n * x2
+    # subtract off estimates of bias for numerator and denominator
+    ub_xy2 = xy2 - sigma2 / n * x2
+    ub_x2y2 = x2y2 - (m - 1) * sigma2 / n * x2
 
-    #form ratio of unbiased estimates
-    r2er = ub_xy2/ub_x2y2
+    # form ratio of unbiased estimates
+    r2er = ub_xy2 / ub_x2y2
 
     return np.squeeze(r2er), r2
 
@@ -543,7 +585,7 @@ def compute_feve(target, output):
     mean_obs_var = np.mean(np.array(obs_var), axis=0)  # mean obs variance
 
     total_var = np.nanvar(target, axis=(0, 1), ddof=1)  # total variance
-    explainable_var = (total_var - mean_obs_var)  # explainable variance
+    explainable_var = total_var - mean_obs_var  # explainable variance
 
     feve = 1 - (mse - mean_obs_var) / explainable_var  # fraction of explainable variance explained
 
