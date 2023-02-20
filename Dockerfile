@@ -1,6 +1,7 @@
-FROM sinzlab/pytorch:v3.8-torch1.7.0-cuda11.0-dj0.12.7
+FROM sinzlab/pytorch:v3.9-torch1.13.1-cuda11.7.0-dj0.12.9
 RUN pip install --upgrade pip
 RUN pip install --upgrade setuptools
+RUN pip install --upgrade six
 
 ADD ./neuralmetrics /src/neuralmetrics
 RUN pip install -e /src/neuralmetrics
