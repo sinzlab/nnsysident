@@ -23,13 +23,10 @@ class MLP(nn.Module):
         for linear_layer in [p for p in self.parameters() if isinstance(p, nn.Linear)]:
             xavier_normal(linear_layer.weight)
 
-    def forward(self, input, readoutput=None):
-        mod = torch.exp(self.linear(self.mlp(input)))
+    def forward(self, x, behavior):
+        mod = torch.exp(self.linear(self.mlp(behavior)))
+        return x * mod
 
-        if readoutput is None:
-            return mod
-        else:
-            return readoutput * mod
 
 
 class StaticModulator(torch.nn.ModuleDict):

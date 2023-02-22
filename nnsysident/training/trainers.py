@@ -75,21 +75,22 @@ def standard_trainer(
     if stop_function == "get_loss" and maximize:
         warn("A loss function is the stopping criterion but 'maximize' is set to True for the early stopping")
 
-    def full_objective(model, dataloader, data_key, *args, detach_core):
-
-        loss_scale = np.sqrt(len(dataloader[data_key].dataset) / args[0].shape[0]) if scale_loss else 1.0
+    def full_objective(model, dataloader, data_key, args, detach_core):
+        loss_scale = np.sqrt(len(dataloader[data_key].dataset) / args.images.shape[0]) if scale_loss else 1.0
         regularizers = int(not detach_core) * model.core.regularizer() + model.readout.regularizer(data_key)
-        output = model(args[0].to(device), data_key=data_key, detach_core=detach_core)
+        pupil_center = args.pupil_center if hasattr(args, "pupil_center") else None
+        behavior = args.behavior if hasattr(args, "behavior") else None
+        output = model(args.images.to(device), data_key=data_key, detach_core=detach_core, behavior=behavior, pupil_center=pupil_center)
         if hasattr(model, "transform"):
             likelihood = criterion(
                 model=model,
                 data_key=data_key,
-                target=args[1].to(device),
+                target=args.responses.to(device),
                 output=output,
             )
         else:
             likelihood = criterion(
-                target=args[1].to(device),
+                target=args.responses.to(device),
                 output=output,
             )
         return loss_scale * likelihood + regularizers
@@ -194,7 +195,7 @@ def standard_trainer(
             enumerate(LongCycler(dataloaders["train"])), total=n_iterations, desc="Epoch {}".format(epoch)
         ):
 
-            loss = full_objective(model, dataloaders["train"], data_key, *data, detach_core=detach_core)
+            loss = full_objective(model, dataloaders["train"], data_key, data, detach_core=detach_core)
             loss.backward()
             if (batch_no + 1) % optim_step_count == 0:
                 optimizer.step()

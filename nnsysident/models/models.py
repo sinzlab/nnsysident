@@ -1,8 +1,10 @@
 import numpy as np
 import copy
 from ..utility.data_helpers import unpack_data_info
+from .modulators import MLPModulator
 from neuralpredictors.layers.cores import TransferLearningCore, SE2dCore, Stacked2dCore
 from neuralpredictors.layers.encoders.firing_rate import FiringRateEncoder
+from neuralpredictors.layers.shifters import MLPShifter
 from neuralpredictors.utils import get_module_output
 from nnfabrik.utility.nn_helpers import set_random_seed, get_dims_for_loader_dict
 from neuralpredictors.layers.readouts import (
@@ -49,8 +51,8 @@ def get_mean_activity_dict(dataloaders):
     # initializing readout bias to mean response
     mean_activity_dict = {}
     for key, value in dataloaders.items():
-        _, targets = next(iter(value))
-        mean_activity_dict[key] = targets.mean(0)
+        data = next(iter(value))
+        mean_activity_dict[key] = data.responses.mean(0)
     return mean_activity_dict
 
 
@@ -102,6 +104,8 @@ def se2d_fullgaussian2d(
     share_transform=False,
     init_noise=1e-3,
     init_transform_scale=0.2,
+    modulator_kwargs=None,
+    shifter_kwargs=None,
 ):
     """
     Model class of a SE2dCore and a Gaussian readout)
@@ -146,7 +150,7 @@ def se2d_fullgaussian2d(
             dataloaders = dataloaders["train"]
 
         # Obtain the named tuple fields from the first entry of the first dataloader in the dictionary
-        in_name, out_name = next(iter(list(dataloaders.values())[0]))._fields
+        in_name, out_name = next(iter(list(dataloaders.values())[0]))._fields[:2]
 
         session_shape_dict = get_dims_for_loader_dict(dataloaders)
         n_neurons_dict = {k: v[out_name][1] for k, v in session_shape_dict.items()}
@@ -275,7 +279,18 @@ def se2d_fullgaussian2d(
         init_noise=init_noise,
         init_transform_scale=init_transform_scale,
     )
-    model = Encoder(core=core, readout=readout, elu_offset=elu_offset)
+
+    if modulator_kwargs is None:
+        modulator = None
+    else:
+        modulator = MLPModulator(n_neurons_dict, **modulator_kwargs)
+
+    if shifter_kwargs is None:
+        shifter = None
+    else:
+        shifter = MLPShifter(list(n_neurons_dict.keys()), **shifter_kwargs)
+
+    model = Encoder(core=core, readout=readout, modulator=modulator, shifter=shifter,  elu_offset=elu_offset)
 
     return model
 
