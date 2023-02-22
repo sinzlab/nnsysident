@@ -2,24 +2,23 @@ from functools import partial
 import numpy as np
 import torch
 from tqdm import tqdm
+from warnings import warn
 
-from neuralpredictors import measures as mlmeasures
+from neuralpredictors.measures import corr
 from neuralpredictors.training import early_stopping, MultipleObjectiveTracker, LongCycler
 from nnfabrik.utility.nn_helpers import set_random_seed
 
+from neuralmetrics.training import losses
+from neuralpredictors.measures.modules import PoissonLoss
 from ..utility import measures
-from ..utility.measures import get_correlations, get_poisson_loss
-from ..utility.loss_functions import AnscombeLoss
-
-mlmeasures.AnscombeLoss = AnscombeLoss
 
 def standard_trainer(
     model,
     dataloaders,
     seed,
+    loss_function="PoissonLoss",
     avg_loss=False,
     scale_loss=True,
-    loss_function="PoissonLoss",
     stop_function="get_correlations",
     loss_accum_batch_n=None,
     device="cuda",
@@ -73,21 +72,35 @@ def standard_trainer(
 
     """
 
+    if stop_function == "get_loss" and maximize:
+        warn("A loss function is the stopping criterion but 'maximize' is set to True for the early stopping")
+
     def full_objective(model, dataloader, data_key, *args, detach_core):
 
         loss_scale = np.sqrt(len(dataloader[data_key].dataset) / args[0].shape[0]) if scale_loss else 1.0
         regularizers = int(not detach_core) * model.core.regularizer() + model.readout.regularizer(data_key)
-        return (
-            loss_scale * criterion(model(args[0].to(device), data_key, detach_core=detach_core), args[1].to(device))
-            + regularizers
-        )
+        output = model(args[0].to(device), data_key=data_key, detach_core=detach_core)
+        if hasattr(model, "transform"):
+            likelihood = criterion(
+                model=model,
+                data_key=data_key,
+                target=args[1].to(device),
+                output=output,
+            )
+        else:
+            likelihood = criterion(
+                target=args[1].to(device),
+                output=output,
+            )
+        return loss_scale * likelihood + regularizers
+
 
     ##### Model training ####################################################################################################
     model.to(device)
     set_random_seed(seed)
     model.train()
 
-    criterion = getattr(mlmeasures, loss_function)(avg=avg_loss)
+    criterion = PoissonLoss(avg=avg_loss) if loss_function == "PoissonLoss" else getattr(losses, loss_function)(avg=avg_loss)
     stop_closure = partial(
         getattr(measures, stop_function),
         dataloaders=dataloaders["validation"],
@@ -95,6 +108,8 @@ def standard_trainer(
         per_neuron=False,
         avg=True,
     )
+    if stop_function == "get_loss":
+        stop_closure = partial(stop_closure, loss_function=loss_function)
 
     n_iterations = len(LongCycler(dataloaders["train"]))
 
@@ -115,10 +130,31 @@ def standard_trainer(
 
     if track_training:
         tracker_dict = dict(
-            correlation=partial(get_correlations, model, dataloaders["validation"], device=device, per_neuron=False),
-            poisson_loss=partial(
-                get_poisson_loss, model, dataloaders["validation"], device=device, per_neuron=False, avg=False
-            )
+            val_correlation=partial(
+                measures.get_correlations,
+                model,
+                dataloaders["validation"],
+                device=device,
+                per_neuron=False,
+            ),
+            val_loss=partial(
+                measures.get_loss,
+                model,
+                dataloaders["validation"],
+                device=device,
+                per_neuron=False,
+                avg=False,
+                loss_function=loss_function,
+            ),
+            train_loss=partial(
+                measures.get_loss,
+                model,
+                dataloaders["train"],
+                device=device,
+                per_neuron=False,
+                avg=False,
+                loss_function=loss_function,
+            ),
         )
         if hasattr(model, "tracked_values"):
             tracker_dict.update(model.tracked_values)
@@ -169,10 +205,10 @@ def standard_trainer(
     tracker.finalize() if track_training else None
 
     # Compute avg validation and test correlation
-    validation_correlation = get_correlations(
+    validation_correlation = measures.get_correlations(
         model, dataloaders["validation"], device=device, as_dict=False, per_neuron=False
     )
-    test_correlation = get_correlations(model, dataloaders["test"], device=device, as_dict=False, per_neuron=False)
+    test_correlation = measures.get_correlations(model, dataloaders["test"], device=device, as_dict=False, per_neuron=False)
 
     # return the whole tracker output as a dict
     output = {k: v for k, v in tracker.log.items()} if track_training else {}

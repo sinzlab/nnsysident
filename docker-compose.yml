@@ -1,7 +1,6 @@
 version: "2.3"
 services:
-  gpu_job:
-    privileged: true
+  notebook:
     build:
       dockerfile: ./nnsysident/Dockerfile
       context: ../
@@ -9,21 +8,26 @@ services:
     volumes:
       - .:/project
       - ../data_port:/src/data_port
+      - ../neuralmetrics:/src/neuralmetrics
+      - ../mei:/src/mei
+      - /var/sinz-shared/mouse/toliaslab/static:/notebooks/data
       - /var/sinz-shared/mouse/toliaslab/static:/project/notebooks/data
+    env_file: .env
+    runtime: nvidia
+
+  gpu_job:
+    build:
+      dockerfile: ./neuralmetrics/Dockerfile
+      context: ../
+    image: nnsysident
+    volumes:
+      - .:/src/nnsysident
+      - ../neuralmetrics:/src/neuralmetrics
+      - ../mei:/src/mei
+      - .:/notebooks
+      - /var/sinz-shared/mouse/toliaslab/static:/notebooks/data
     env_file: .env
     runtime: nvidia
     entrypoint: /usr/local/bin/python3
     command: run.py
 
-  gpu_notebook:
-    privileged: true
-    build:
-      dockerfile: ./nnsysident/Dockerfile
-      context: ../
-    image: nnsysident
-    volumes:
-      - .:/project
-      - ../data_port:/src/data_port
-      - /var/sinz-shared/mouse/toliaslab/static:/project/notebooks/data
-    env_file: .env
-    runtime: nvidia
