@@ -5,16 +5,22 @@ from torch import nn
 from torch.nn.init import xavier_normal
 
 class MLP(nn.Module):
-    def __init__(self, neurons, input_channels=3, hidden_channels=10, layers=2, **kwargs):
+    def __init__(self, neurons, input_channels=3, hidden_channels=10, layers=2, bias=True, n_parameters_to_modulate=1, **kwargs):
         super().__init__()
         warnings.warn(
             'Ignoring input {} when creating {}'.format(repr(kwargs), self.__class__.__name__)
         )
-        feat = [nn.Linear(input_channels, hidden_channels), nn.ReLU()]
-        for _ in range(layers - 1):
-            feat.extend([nn.Linear(hidden_channels, hidden_channels), nn.ReLU()])
-        self.mlp = nn.Sequential(*feat)
-        self.linear = nn.Linear(hidden_channels, neurons)
+        self.modulator_networks = nn.ModuleList()
+        for _ in range(n_parameters_to_modulate):
+
+            prev_output = input_channels
+            feat = []
+            for _ in range(layers - 1):
+                feat.extend([nn.Linear(prev_output, hidden_channels, bias=bias), nn.ReLU()])
+                prev_output = hidden_channels
+
+            feat.extend([nn.Linear(prev_output, neurons, bias=bias), nn.ReLU()])
+            self.modulator_networks.append(nn.Sequential(*feat))
 
     def regularizer(self):
         return self.linear.weight.abs().mean()
@@ -24,8 +30,12 @@ class MLP(nn.Module):
             xavier_normal(linear_layer.weight)
 
     def forward(self, x, behavior):
-        mod = torch.exp(self.linear(self.mlp(behavior)))
-        return x * mod
+        mods = []
+        for network in self.modulator_networks:
+            # Make modulation positive. Exponential would result in exploding modulation -> Elu+1
+            mods.append(nn.functional.elu(network(behavior)) + 1)
+        mods = torch.stack(mods)
+        return x * mods
 
 
 
@@ -33,7 +43,7 @@ class StaticModulator(torch.nn.ModuleDict):
     _base_modulator = None
 
     def __init__(self, n_neurons, input_channels=3, hidden_channels=5,
-                 layers=2, gamma_modulator=0, **kwargs):
+                 layers=2, gamma_modulator=0, bias=True, n_parameters_to_modulate=1, **kwargs):
         warnings.warn(
             'Ignoring input {} when creating {}'.format(repr(kwargs), self.__class__.__name__)
         )
@@ -44,7 +54,7 @@ class StaticModulator(torch.nn.ModuleDict):
                 ic = input_channels[k]
             else:
                 ic = input_channels
-            self.add_module(k, self._base_modulator(n, ic, hidden_channels, layers=layers))
+            self.add_module(k, self._base_modulator(n, ic, hidden_channels, layers=layers, bias=bias, n_parameters_to_modulate=n_parameters_to_modulate))
 
     def initialize(self):
         for k, mu in self.items():
