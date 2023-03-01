@@ -10,8 +10,9 @@ class MLP(nn.Module):
         warnings.warn(
             'Ignoring input {} when creating {}'.format(repr(kwargs), self.__class__.__name__)
         )
+        self.n_parameters_to_modulate = n_parameters_to_modulate
         self.modulator_networks = nn.ModuleList()
-        for _ in range(n_parameters_to_modulate):
+        for _ in range(self.n_parameters_to_modulate):
 
             prev_output = input_channels
             feat = []
@@ -34,7 +35,7 @@ class MLP(nn.Module):
         for network in self.modulator_networks:
             # Make modulation positive. Exponential would result in exploding modulation -> Elu+1
             mods.append(nn.functional.elu(network(behavior)) + 1)
-        mods = torch.stack(mods)
+        mods = mods[0] if self.n_parameters_to_modulate == 1 else torch.stack(mods)
         return x * mods
 
 
