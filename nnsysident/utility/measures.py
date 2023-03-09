@@ -3,12 +3,10 @@ import numpy as np
 import torch
 from neuralpredictors.measures import corr
 from neuralpredictors.training import eval_state, device_state
-from neuralmetrics.training import losses
+from neuralpredictors.measures import zero_inflated_losses as losses
 from neuralpredictors.measures.modules import PoissonLoss
 import types
 import contextlib
-
-from neuralmetrics.training import losses
 
 
 def model_predictions_repeats(model, dataloader, data_key, device="cpu", broadcast_to_target=False):

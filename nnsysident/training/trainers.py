@@ -4,11 +4,10 @@ import torch
 from tqdm import tqdm
 from warnings import warn
 
-from neuralpredictors.measures import corr
 from neuralpredictors.training import early_stopping, MultipleObjectiveTracker, LongCycler
 from nnfabrik.utility.nn_helpers import set_random_seed
 
-from neuralmetrics.training import losses
+import neuralpredictors.measures.zero_inflated_losses as losses
 from neuralpredictors.measures.modules import PoissonLoss
 from ..utility import measures
 
