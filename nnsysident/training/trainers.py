@@ -76,7 +76,7 @@ def standard_trainer(
 
     def full_objective(model, dataloader, data_key, args, detach_core):
         loss_scale = np.sqrt(len(dataloader[data_key].dataset) / args.images.shape[0]) if scale_loss else 1.0
-        regularizers = int(not detach_core) * model.core.regularizer() + model.readout.regularizer(data_key)
+        regularizers = model.regularizer(data_key=data_key, detach_core=detach_core)
         pupil_center = args.pupil_center if hasattr(args, "pupil_center") else None
         behavior = args.behavior if hasattr(args, "behavior") else None
         output = model(args.images.to(device), data_key=data_key, detach_core=detach_core, behavior=behavior, pupil_center=pupil_center)
