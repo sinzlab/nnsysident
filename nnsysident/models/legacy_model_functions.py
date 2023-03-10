@@ -8,10 +8,10 @@ from neuralpredictors.layers.encoders.firing_rate import FiringRateEncoder
 from neuralpredictors.layers.readouts import (FullFactorized2d, FullGaussian2d, GeneralizedFullGaussianReadout2d,
                                               MultiReadoutBase, MultiReadoutSharedParametersBase, PointPooled2d)
 from neuralpredictors.layers.shifters import MLPShifter
+from neuralpredictors.layers.modulators.mlp import MLPModulator
 from neuralpredictors.utils import get_module_output
 
 from ..utility.data_helpers import unpack_data_info
-from .modulators import MLPModulator
 
 
 class MultiplePointPooled2d(MultiReadoutBase):

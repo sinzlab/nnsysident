@@ -5,13 +5,13 @@ from nnfabrik.utility.nn_helpers import get_dims_for_loader_dict, set_random_see
 
 from neuralpredictors.layers.cores import SE2dCore, Stacked2dCore
 from neuralpredictors.layers.encoders import FiringRateEncoder, ZIGEncoder, ZILEncoder
+from neuralpredictors.layers.modulators.mlp import MLPModulator
 from neuralpredictors.layers.readouts import (FullFactorized2d, FullGaussian2d, GeneralizedFullGaussianReadout2d,
                                               MultiReadoutBase, MultiReadoutSharedParametersBase, PointPooled2d)
 from neuralpredictors.layers.shifters import MLPShifter
 from neuralpredictors.utils import get_module_output
 
 from ..utility.data_helpers import unpack_data_info
-from .modulators import MLPModulator
 
 
 class MultiplePointPooled2d(MultiReadoutBase):
