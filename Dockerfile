@@ -3,8 +3,8 @@ RUN pip install --upgrade pip
 RUN pip install --upgrade setuptools
 RUN pip install --upgrade six
 
-ADD ./neuralmetrics /src/neuralmetrics
-RUN pip install -e /src/neuralmetrics
+#ADD ./neuralmetrics /src/neuralmetrics
+#RUN pip install -e /src/neuralmetrics
 
 ADD ./mei /src/mei
 RUN pip install -e /src/mei
@@ -12,7 +12,7 @@ RUN pip install -e /src/mei
 ADD ./data_port /src/data_port
 RUN pip install -e /src/data_port
 
-RUN pip install git+https://github.com/sinzlab/neuralpredictors.git@main
+RUN pip install git+https://github.com/kklurz/neuralpredictors.git@main
 
 RUN pip install nnfabrik==0.1.0
 RUN pip install figrid
