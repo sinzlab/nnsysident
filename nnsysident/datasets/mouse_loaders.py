@@ -31,32 +31,32 @@ except ImportError:
 
 @fetch_non_existing_data
 def static_loader(
-        path,
-        batch_size,
-        areas=None,
-        layers=None,
-        tier=None,
-        neuron_ids=None,
-        neuron_n=None,
-        exclude_neuron_n=0,
-        neuron_base_seed=None,
-        image_ids=None,
-        image_n=None,
-        image_base_seed=None,
-        trial_indices=None,
-        get_key=False,
-        cuda=True,
-        normalize=True,
-        exclude="images",
-        loader_outputs=["images", "responses"],
-        select_input_channel=None,
-        file_tree=True,
-        return_test_sampler=False,
-        oracle_condition=None,
-        shuffle_train=True,
-        shuffle_test=False,
-        scale=None,
-        subtract_behavior_mean=False,
+    path,
+    batch_size,
+    areas=None,
+    layers=None,
+    tier=None,
+    neuron_ids=None,
+    neuron_n=None,
+    exclude_neuron_n=0,
+    neuron_base_seed=None,
+    image_ids=None,
+    image_n=None,
+    image_base_seed=None,
+    trial_indices=None,
+    get_key=False,
+    cuda=True,
+    normalize=True,
+    exclude="images",
+    loader_outputs=["images", "responses"],
+    select_input_channel=None,
+    file_tree=True,
+    return_test_sampler=False,
+    oracle_condition=None,
+    shuffle_train=True,
+    shuffle_test=False,
+    scale=None,
+    subtract_behavior_mean=False,
 ):
     """
     returns a single data loader
@@ -91,7 +91,7 @@ def static_loader(
 
     """
     assert (image_ids is not None) + (image_n is not None) + (
-            trial_indices is not None
+        trial_indices is not None
     ) <= 1, "Only one out of {image_ids, image_n, trial_indices} can be set."
 
     if image_n is None and image_base_seed is not None:
@@ -105,7 +105,9 @@ def static_loader(
         dat = StaticImageSet(path, *loader_outputs)
 
     idx = filter_neurons(dat, neuron_ids, neuron_n, neuron_base_seed, areas, layers, exclude_neuron_n)
-    transforms = get_transforms(dat, idx, normalize, exclude, loader_outputs, select_input_channel, scale, cuda, subtract_behavior_mean)
+    transforms = get_transforms(
+        dat, idx, normalize, exclude, loader_outputs, select_input_channel, scale, cuda, subtract_behavior_mean
+    )
     dat.transforms.extend(transforms)
 
     if return_test_sampler:
@@ -150,14 +152,7 @@ def static_loader(
 
 
 def static_loaders(
-        paths,
-        batch_size,
-        seed=None,
-        tier=None,
-        neuron_ids=None,
-        image_ids=None,
-        trial_indices=None,
-        **kwargs
+    paths, batch_size, seed=None, tier=None, neuron_ids=None, image_ids=None, trial_indices=None, **kwargs
 ):
     """
     Returns a dictionary of dataloaders (i.e., trainloaders, valloaders, and testloaders) for >= 1 dataset(s).
@@ -187,7 +182,7 @@ def static_loaders(
     trial_indices = [trial_indices] if trial_indices is None else trial_indices
 
     for path, neuron_id, image_id, trial_index in zip_longest(
-            paths, neuron_ids, image_ids, trial_indices, fillvalue=None
+        paths, neuron_ids, image_ids, trial_indices, fillvalue=None
     ):
         data_key, loaders = static_loader(
             path,
@@ -197,7 +192,7 @@ def static_loaders(
             neuron_ids=neuron_id,
             image_ids=image_id,
             trial_indices=trial_index,
-            **kwargs
+            **kwargs,
         )
         for k in dls:
             dls[k][data_key] = loaders[k]
@@ -309,13 +304,7 @@ def static_shared_loaders(
     for path, neuron_id, image_id in zip_longest(paths, neuron_ids, image_ids, fillvalue=None):
 
         data_key, loaders = static_loader(
-            path,
-            batch_size,
-            tier=tier,
-            get_key=True,
-            neuron_ids=neuron_id,
-            image_ids=image_id,
-            **kwargs
+            path, batch_size, tier=tier, get_key=True, neuron_ids=neuron_id, image_ids=image_id, **kwargs
         )
         for k in dls:
             dls[k][data_key] = loaders[k]

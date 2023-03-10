@@ -10,9 +10,7 @@ class AnscombeLoss(nn.Module):
         self.per_neuron = per_neuron
         self.avg = avg
         if self.avg:
-            warnings.warn(
-                "Anscombeloss is averaged per batch. It's recommended so use sum instead"
-            )
+            warnings.warn("Anscombeloss is averaged per batch. It's recommended so use sum instead")
 
     def forward(self, predictions, targets):
         agg_fn = torch.mean if self.avg else torch.sum
@@ -26,7 +24,8 @@ class AnscombeLoss(nn.Module):
         # compute the loss
         SSE = torch.sum((target - mu) ** 2, dim=1)
         loss = -(
-            -.5*SSE - (target.shape[1]/2) * np.log(2*np.pi)
+            -0.5 * SSE
+            - (target.shape[1] / 2) * np.log(2 * np.pi)
             + target.shape[1] * np.log(2)
             - target.log().sum(dim=1)
         )

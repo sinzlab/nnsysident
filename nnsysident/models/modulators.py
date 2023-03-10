@@ -4,12 +4,13 @@ import torch
 from torch import nn
 from torch.nn.init import xavier_normal
 
+
 class MLP(nn.Module):
-    def __init__(self, neurons, input_channels=3, hidden_channels=10, layers=2, bias=True, n_parameters_to_modulate=1, **kwargs):
+    def __init__(
+        self, neurons, input_channels=3, hidden_channels=10, layers=2, bias=True, n_parameters_to_modulate=1, **kwargs
+    ):
         super().__init__()
-        warnings.warn(
-            'Ignoring input {} when creating {}'.format(repr(kwargs), self.__class__.__name__)
-        )
+        warnings.warn("Ignoring input {} when creating {}".format(repr(kwargs), self.__class__.__name__))
         self.n_parameters_to_modulate = n_parameters_to_modulate
         self.modulator_networks = nn.ModuleList()
         for _ in range(self.n_parameters_to_modulate):
@@ -39,15 +40,21 @@ class MLP(nn.Module):
         return x * mods
 
 
-
 class StaticModulator(torch.nn.ModuleDict):
     _base_modulator = None
 
-    def __init__(self, n_neurons, input_channels=3, hidden_channels=5,
-                 layers=2, gamma_modulator=0, bias=True, n_parameters_to_modulate=1, **kwargs):
-        warnings.warn(
-            'Ignoring input {} when creating {}'.format(repr(kwargs), self.__class__.__name__)
-        )
+    def __init__(
+        self,
+        n_neurons,
+        input_channels=3,
+        hidden_channels=5,
+        layers=2,
+        gamma_modulator=0,
+        bias=True,
+        n_parameters_to_modulate=1,
+        **kwargs
+    ):
+        warnings.warn("Ignoring input {} when creating {}".format(repr(kwargs), self.__class__.__name__))
         super().__init__()
         self.gamma_modulator = gamma_modulator
         for k, n in n_neurons.items():
@@ -55,7 +62,12 @@ class StaticModulator(torch.nn.ModuleDict):
                 ic = input_channels[k]
             else:
                 ic = input_channels
-            self.add_module(k, self._base_modulator(n, ic, hidden_channels, layers=layers, bias=bias, n_parameters_to_modulate=n_parameters_to_modulate))
+            self.add_module(
+                k,
+                self._base_modulator(
+                    n, ic, hidden_channels, layers=layers, bias=bias, n_parameters_to_modulate=n_parameters_to_modulate
+                ),
+            )
 
     def initialize(self):
         for k, mu in self.items():

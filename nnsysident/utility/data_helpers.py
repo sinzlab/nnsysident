@@ -6,13 +6,9 @@ from collections import Counter
 from neuralpredictors.data.samplers import RepeatsBatchSampler
 
 
-def get_oracle_dataloader(dat,
-                          toy_data=False,
-                          oracle_condition=None,
-                          verbose=False,
-                          file_tree=False,
-                          subset_idx=None,
-                          min_count=2):
+def get_oracle_dataloader(
+    dat, toy_data=False, oracle_condition=None, verbose=False, file_tree=False, subset_idx=None, min_count=2
+):
 
     if toy_data:
         condition_hashes = dat.info.condition_hash

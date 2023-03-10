@@ -4,6 +4,7 @@ import datajoint as dj
 from .experiments import TrainedModel, TrainedModelTransfer
 from ..utility.measures import get_fraction_oracles, get_r2er, get_feve, get_correlations
 from nnfabrik.builder import get_data
+
 # from nnfabrik.templates.scoring import SummaryScoringBase
 from nnfabrik.main import my_nnfabrik
 from nnfabrik.templates.trained_model import TrainedModelBase
@@ -69,7 +70,7 @@ class ScoringBase(dj.Computed):
         return self.trainedmodel_table().dataset_table
 
     @staticmethod
-    def measure_function(dataloaders, model, device='cuda', as_dict=True, per_neuron=True):
+    def measure_function(dataloaders, model, device="cuda", as_dict=True, per_neuron=True):
         raise NotImplementedError("Scoring Function has to be implemented")
 
     # table level comment
@@ -83,7 +84,9 @@ class ScoringBase(dj.Computed):
                 ---
                 {measure_attribute}:      float     # A template for a computed score of a trained model
                 {measure_attribute}_ts=CURRENT_TIMESTAMP: timestamp    # UTZ timestamp at time of insertion
-                """.format(table_comment=self.table_comment, measure_attribute=self.measure_attribute)
+                """.format(
+            table_comment=self.table_comment, measure_attribute=self.measure_attribute
+        )
         return definition
 
     class Units(dj.Part):
@@ -95,25 +98,24 @@ class ScoringBase(dj.Computed):
                 -> master.unit_table
                 ---
                 unit_{measure_attribute}:     float   # A template for a computed unit score        
-                """.format(measure_attribute=self._master.measure_attribute)
+                """.format(
+                measure_attribute=self._master.measure_attribute
+            )
             return definition
 
     def get_model(self, key=None):
         if self.model_cache is None:
-            model = self.trainedmodel_table().load_model(key=key,
-                                                         include_state_dict=True,
-                                                         include_dataloader=False)
+            model = self.trainedmodel_table().load_model(key=key, include_state_dict=True, include_dataloader=False)
         else:
-            model = self.model_cache.load(key=key,
-                                          include_state_dict=True,
-                                          include_dataloader=False)
+            model = self.model_cache.load(key=key, include_state_dict=True, include_dataloader=False)
         return model
-
 
     def get_dataloaders(self, key=None):
         if key is None:
-            key = self.fetch1('KEY')
-        dataloaders = self.dataset_table().get_dataloader(key=key) if self.data_cache is None else self.data_cache.load(key=key)
+            key = self.fetch1("KEY")
+        dataloaders = (
+            self.dataset_table().get_dataloader(key=key) if self.data_cache is None else self.data_cache.load(key=key)
+        )
         return dataloaders[self.measure_dataset]
 
     def get_repeats_dataloaders(self, key=None):
@@ -126,8 +128,10 @@ class ScoringBase(dj.Computed):
         key = key.copy()
         for data_key, unit_scores in unit_measures_dict.items():
             for unit_index, unit_score in enumerate(unit_scores):
-                if "unit_id" in key: key.pop("unit_id")
-                if "data_key" in key: key.pop("data_key")
+                if "unit_id" in key:
+                    key.pop("unit_id")
+                if "data_key" in key:
+                    key.pop("data_key")
                 neuron_key = dict(unit_index=unit_index, data_key=data_key)
                 unit_id = ((self.unit_table & key) & neuron_key).fetch1("unit_id")
                 key["unit_id"] = unit_id
@@ -137,15 +141,13 @@ class ScoringBase(dj.Computed):
 
     def make(self, key):
 
-        dataloaders = self.get_repeats_dataloaders(key=key) if self.measure_dataset == 'test' else self.get_dataloaders(
-            key=key)
+        dataloaders = (
+            self.get_repeats_dataloaders(key=key) if self.measure_dataset == "test" else self.get_dataloaders(key=key)
+        )
         model = self.get_model(key=key)
-        unit_measures_dict = self.measure_function(model=model,
-                                                   dataloaders=dataloaders,
-                                                   device='cuda',
-                                                   as_dict=True,
-                                                   per_neuron=True,
-                                                   **self.function_kwargs)
+        unit_measures_dict = self.measure_function(
+            model=model, dataloaders=dataloaders, device="cuda", as_dict=True, per_neuron=True, **self.function_kwargs
+        )
 
         key[self.measure_attribute] = self.get_avg_of_unit_dict(unit_measures_dict)
         self.insert1(key, ignore_extra_fields=True)
@@ -157,20 +159,20 @@ class SummaryScoringBase(ScoringBase):
     A template scoring table with the same logic as ScoringBase, but for scores that do not have unit scores, but
     an overall score per model only.
     """
+
     unit_table = None
     Units = None
 
     def make(self, key):
 
-        dataloaders = self.get_repeats_dataloaders(key=key) if self.measure_dataset == 'test' else self.get_dataloaders(
-            key=key)
+        dataloaders = (
+            self.get_repeats_dataloaders(key=key) if self.measure_dataset == "test" else self.get_dataloaders(key=key)
+        )
         model = self.get_model(key=key)
-        key[self.measure_attribute] = self.measure_function(model=model,
-                                                            dataloaders=dataloaders,
-                                                            device='cuda',
-                                                            **self.function_kwargs)
+        key[self.measure_attribute] = self.measure_function(
+            model=model, dataloaders=dataloaders, device="cuda", **self.function_kwargs
+        )
         self.insert1(key, ignore_extra_fields=True)
-
 
 
 class ScoringTable(SummaryScoringBase):
@@ -183,7 +185,7 @@ class ScoringTable(SummaryScoringBase):
         dataset_fn, dataset_config = (self.dataset_table & key).fn_config
         dataset_config["return_test_sampler"] = True
         dataset_config["tier"] = "test"
-        if 'seed' not in dataset_config:
+        if "seed" not in dataset_config:
             dataset_config["seed"] = (self.trainedmodel_table().seed_table & key).fetch1("seed")
 
         dataloaders = get_data(dataset_fn, dataset_config)
@@ -192,7 +194,9 @@ class ScoringTable(SummaryScoringBase):
     def make(self, key):
 
         dataloaders = (
-            self.get_repeats_dataloaders(key=key)["test"] if self.measure_dataset == "test" else self.get_dataloaders(key=key)
+            self.get_repeats_dataloaders(key=key)["test"]
+            if self.measure_dataset == "test"
+            else self.get_dataloaders(key=key)
         )
         model = self.get_model(key=key)
         value = self.measure_function(model=model, dataloaders=dataloaders, device="cuda", **self.function_kwargs)
@@ -237,6 +241,7 @@ class TestCorrTransfer(ScoringTable):
     measure_attribute = "test_correlation"
     measure_function = staticmethod(get_correlations)
     function_kwargs = {"as_dict": False, "per_neuron": False}
+
 
 @schema
 class R2erScore(ScoringTable):

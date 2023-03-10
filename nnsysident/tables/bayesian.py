@@ -65,7 +65,6 @@ class TrainedModelBayesian(TrainedModel):
         return SeedBayesian
 
 
-
 @schema
 class TrainedModelBayesianTransfer(TrainedModelTransfer):
     storage = "minio_models_bayesian"
