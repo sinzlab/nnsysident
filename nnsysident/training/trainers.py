@@ -67,6 +67,9 @@ def standard_trainer(
         min_lr: minimum learning rate
         cb: whether to execute callback function
         track_training: whether to track and print out the training progress
+        return_test_score: whether to return the score on the test set (instead of the default validation set)
+        detach_core: whether to detach the core from the gradient computation. Used when fine tuning the readout but
+                     keeping the core fixed.
         **kwargs:
 
     Returns:

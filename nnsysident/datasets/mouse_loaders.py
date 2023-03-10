@@ -63,12 +63,13 @@ def static_loader(
         tier (str, optional): tier is a placeholder to specify which set of images to pick for train, val, and test loader.
         neuron_ids (list, optional): select neurons by their ids.
         neuron_n (int, optional): number of neurons to select randomly. Can not be set together with neuron_ids
-        neuron_base_seed (float, optional): base seed for neuron selection. Get's multiplied by neuron_n to obtain final seed
+        neuron_base_seed (float, optional): base seed for neuron selection. Gets multiplied by neuron_n to obtain final seed
         exclude_neuron_n (int): the first <exclude_neuron_n> neurons will be excluded (given a neuron_base_seed),
                                 then <neuron_n> neurons will be drawn from the remaining neurons.
         image_ids (list, optional): select images by their ids.
         image_n (int, optional): number of images to select randomly. Can not be set together with image_ids
-        image_base_seed (float, optional): base seed for image selection. Get's multiplied by image_n to obtain final seed
+        image_base_seed (float, optional): base seed for image selection. Gets multiplied by image_n to obtain final seed
+        trial_indices (list, optional): select trials by their ids.
         get_key (bool, optional): whether to return the data key, along with the dataloaders.
         cuda (bool, optional): whether to place the data on gpu or not.
         normalize (bool, optional): whether to normalize the data (see also exclude)
@@ -78,6 +79,10 @@ def static_loader(
         file_tree (bool, optional): whether to use the file tree dataset format. If False, equivalent to the HDF5 format
         return_test_sampler (bool, optional): whether to return only the test loader with repeat-batches
         oracle_condition (list, optional): Only relevant if return_test_sampler=True. Class indices for the sampler
+        shuffle_train (bool, optional): whether to shuffle the train set
+        shuffle_test (bool, optional): whether to shuffle the test set
+        scale (float, optional): scale the image size
+        subtract_behavior_mean (bool, optional): whether to mean-normalize the behavior variables (if available).
 
     Returns:
         if get_key is False returns a dictionary of dataloaders for one dataset, where the keys are 'train', 'validation', and 'test'.
