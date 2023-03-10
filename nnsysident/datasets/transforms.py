@@ -1,12 +1,7 @@
 import numpy as np
-from neuralpredictors.data.transforms import (
-    Subsample,
-    ToTensor,
-    NeuroNormalizer,
-    SelectInputChannel,
-    ScaleInputs,
-    StaticTransform,
-)
+
+from neuralpredictors.data.transforms import (NeuroNormalizer, ScaleInputs, SelectInputChannel, StaticTransform,
+                                              Subsample, ToTensor)
 
 
 class NoNegativeResponses(StaticTransform):

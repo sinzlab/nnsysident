@@ -1,23 +1,17 @@
 from collections import OrderedDict
 from itertools import zip_longest
+
 import numpy as np
+from nnfabrik.utility.nn_helpers import set_random_seed
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 
-from nnfabrik.utility.nn_helpers import set_random_seed
-from neuralpredictors.data.datasets import StaticImageSet, FileTreeDataset
-from .transforms import get_transforms, filter_neurons
-from ..utility.data_helpers import extract_data_key
-from neuralpredictors.data.transforms import (
-    Subsample,
-    ToTensor,
-    NeuroNormalizer,
-    AddBehaviorAsChannels,
-)
-
-
+from neuralpredictors.data.datasets import FileTreeDataset, StaticImageSet
 from neuralpredictors.data.samplers import SubsetSequentialSampler
-from ..utility.data_helpers import get_oracle_dataloader
+from neuralpredictors.data.transforms import AddBehaviorAsChannels, NeuroNormalizer, Subsample, ToTensor
+
+from ..utility.data_helpers import extract_data_key, get_oracle_dataloader
+from .transforms import filter_neurons, get_transforms
 
 try:
     from dataport.bcm.static import fetch_non_existing_data

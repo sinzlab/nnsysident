@@ -1,7 +1,8 @@
+import warnings
+
+import numpy as np
 import torch
 from torch import nn
-import warnings
-import numpy as np
 
 
 class AnscombeLoss(nn.Module):

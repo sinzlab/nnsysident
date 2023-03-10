@@ -1,7 +1,8 @@
-from collections import OrderedDict
-import torch
-import pandas as pd
 import warnings
+from collections import OrderedDict
+
+import pandas as pd
+import torch
 
 
 def core_transfer(model, trained_model_table, trainer_config, seed, t_model_hash, t_dataset_hash, t_trainer_hash):

@@ -1,13 +1,14 @@
 import os
-import numpy as np
-import datajoint as dj
-from .experiments import TrainedModel, TrainedModelTransfer
-from ..utility.measures import get_fraction_oracles, get_r2er, get_feve, get_correlations
-from nnfabrik.builder import get_data
 
+import datajoint as dj
+import numpy as np
+from nnfabrik.builder import get_data
 # from nnfabrik.templates.scoring import SummaryScoringBase
 from nnfabrik.main import my_nnfabrik
 from nnfabrik.templates.trained_model import TrainedModelBase
+
+from ..utility.measures import get_correlations, get_feve, get_fraction_oracles, get_r2er
+from .experiments import TrainedModel, TrainedModelTransfer
 
 # create the context object
 try:

@@ -1,7 +1,8 @@
 import re
+from collections import Counter
+
 import numpy as np
 import torch.utils.data as utils
-from collections import Counter
 
 from neuralpredictors.data.samplers import RepeatsBatchSampler
 
