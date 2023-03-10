@@ -216,17 +216,25 @@ def standard_trainer(
     model.eval()
     tracker.finalize() if track_training else None
 
-    # Compute avg validation and test correlation
-    validation_correlation = measures.get_correlations(
-        model, dataloaders["validation"], device=device, as_dict=False, per_neuron=False
-    )
-    test_correlation = measures.get_correlations(
-        model, dataloaders["test"], device=device, as_dict=False, per_neuron=False
-    )
+    # store relevant data
+    output = {"tracker_output": {k: v for k, v in tracker.log.items()}} if track_training else {}
+    for tier in ["train", "validation", "test"]:
+        output["best_model_stats"]["correlation"][tier] = measures.get_correlations(
+            model, dataloaders[tier], device=device, as_dict=False, per_neuron=False
+        )
+        output["best_model_stats"]["loss"][tier] = partial(
+            measures.get_loss,
+            model,
+            dataloaders[tier],
+            device=device,
+            per_neuron=False,
+            avg=False,
+            loss_function=loss_function,
+        )
 
-    # return the whole tracker output as a dict
-    output = {k: v for k, v in tracker.log.items()} if track_training else {}
-    output["validation_corr"] = validation_correlation
-
-    score = np.mean(test_correlation) if return_test_score else np.mean(validation_correlation)
+    score = (
+        output["best_model_stats"]["correlation"]["test"]
+        if return_test_score
+        else output["best_model_stats"]["correlation"]["validation"]
+    )
     return score, output, model.state_dict()
