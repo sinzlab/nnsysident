@@ -1,16 +1,17 @@
 from functools import partial
-import numpy as np
-import torch
-from tqdm import tqdm
 from warnings import warn
 
-from neuralpredictors.measures import corr
-from neuralpredictors.training import early_stopping, MultipleObjectiveTracker, LongCycler
+import numpy as np
+import torch
 from nnfabrik.utility.nn_helpers import set_random_seed
+from tqdm import tqdm
 
-from neuralmetrics.training import losses
+import neuralpredictors.measures.zero_inflated_losses as losses
 from neuralpredictors.measures.modules import PoissonLoss
+from neuralpredictors.training import LongCycler, MultipleObjectiveTracker, early_stopping
+
 from ..utility import measures
+
 
 def standard_trainer(
     model,
@@ -66,6 +67,9 @@ def standard_trainer(
         min_lr: minimum learning rate
         cb: whether to execute callback function
         track_training: whether to track and print out the training progress
+        return_test_score: whether to return the score on the test set (instead of the default validation set)
+        detach_core: whether to detach the core from the gradient computation. Used when fine tuning the readout but
+                     keeping the core fixed.
         **kwargs:
 
     Returns:
@@ -77,10 +81,16 @@ def standard_trainer(
 
     def full_objective(model, dataloader, data_key, args, detach_core):
         loss_scale = np.sqrt(len(dataloader[data_key].dataset) / args.images.shape[0]) if scale_loss else 1.0
-        regularizers = int(not detach_core) * model.core.regularizer() + model.readout.regularizer(data_key)
+        regularizers = model.regularizer(data_key=data_key, detach_core=detach_core)
         pupil_center = args.pupil_center if hasattr(args, "pupil_center") else None
         behavior = args.behavior if hasattr(args, "behavior") else None
-        output = model(args.images.to(device), data_key=data_key, detach_core=detach_core, behavior=behavior, pupil_center=pupil_center)
+        output = model(
+            args.images.to(device),
+            data_key=data_key,
+            detach_core=detach_core,
+            behavior=behavior,
+            pupil_center=pupil_center,
+        )
         if hasattr(model, "transform"):
             likelihood = criterion(
                 model=model,
@@ -95,13 +105,14 @@ def standard_trainer(
             )
         return loss_scale * likelihood + regularizers
 
-
     ##### Model training ####################################################################################################
     model.to(device)
     set_random_seed(seed)
     model.train()
 
-    criterion = PoissonLoss(avg=avg_loss) if loss_function == "PoissonLoss" else getattr(losses, loss_function)(avg=avg_loss)
+    criterion = (
+        PoissonLoss(avg=avg_loss) if loss_function == "PoissonLoss" else getattr(losses, loss_function)(avg=avg_loss)
+    )
     stop_closure = partial(
         getattr(measures, stop_function),
         dataloaders=dataloaders["validation"],
@@ -205,15 +216,25 @@ def standard_trainer(
     model.eval()
     tracker.finalize() if track_training else None
 
-    # Compute avg validation and test correlation
-    validation_correlation = measures.get_correlations(
-        model, dataloaders["validation"], device=device, as_dict=False, per_neuron=False
+    # store relevant data
+    output = {"tracker_output": {k: v for k, v in tracker.log.items()}} if track_training else {}
+    for tier in ["train", "validation", "test"]:
+        output["best_model_stats"]["correlation"][tier] = measures.get_correlations(
+            model, dataloaders[tier], device=device, as_dict=False, per_neuron=False
+        )
+        output["best_model_stats"]["loss"][tier] = partial(
+            measures.get_loss,
+            model,
+            dataloaders[tier],
+            device=device,
+            per_neuron=False,
+            avg=False,
+            loss_function=loss_function,
+        )
+
+    score = (
+        output["best_model_stats"]["correlation"]["test"]
+        if return_test_score
+        else output["best_model_stats"]["correlation"]["validation"]
     )
-    test_correlation = measures.get_correlations(model, dataloaders["test"], device=device, as_dict=False, per_neuron=False)
-
-    # return the whole tracker output as a dict
-    output = {k: v for k, v in tracker.log.items()} if track_training else {}
-    output["validation_corr"] = validation_correlation
-
-    score = np.mean(test_correlation) if return_test_score else np.mean(validation_correlation)
     return score, output, model.state_dict()

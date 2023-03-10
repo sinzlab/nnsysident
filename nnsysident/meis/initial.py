@@ -1,6 +1,7 @@
-from mei.initial import InitialGuessCreator
 import torch
 from torch import Tensor, randn
+
+from mei.initial import InitialGuessCreator
 
 
 def cumstom_initial_guess(*args, mean=0, std=1, device="cuda"):

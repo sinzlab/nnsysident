@@ -1,11 +1,11 @@
 import os
-import datajoint as dj
 import tempfile
-import torch
 
-from nnfabrik.templates.trained_model import TrainedModelBase
-from nnfabrik.main import *
+import datajoint as dj
+import torch
 from nnfabrik.builder import resolve_fn
+from nnfabrik.main import *
+from nnfabrik.templates.trained_model import TrainedModelBase
 
 if not "stores" in dj.config:
     dj.config["stores"] = {}

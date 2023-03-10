@@ -1,16 +1,18 @@
 from __future__ import annotations
-from typing import Dict, Any
+
+from typing import Any, Dict
 
 import datajoint as dj
-from nnfabrik.main import Dataset
-from .experiments import TrainedModel, TrainedModelTransfer
 import torch
+from nnfabrik.main import Dataset
 from torch.nn import Module
 from torch.utils.data import DataLoader
 
 from mei import mixins
 from mei.main import MEISeed
 from mei.modules import ConstrainedOutputModel
+
+from .experiments import TrainedModel, TrainedModelTransfer
 
 Key = Dict[str, Any]
 Dataloaders = Dict[str, DataLoader]

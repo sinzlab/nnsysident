@@ -1,7 +1,9 @@
 import os
+
 from nnfabrik.main import *
 from nnfabrik.templates.utility import find_object
-from .experiments import TrainedModel, TrainedModelTransfer, Seed
+
+from .experiments import Seed, TrainedModel, TrainedModelTransfer
 
 if not "stores" in dj.config:
     dj.config["stores"] = {}
@@ -63,7 +65,6 @@ class TrainedModelBayesian(TrainedModel):
     @property
     def seed_table(self):
         return SeedBayesian
-
 
 
 @schema

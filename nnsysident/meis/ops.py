@@ -1,9 +1,10 @@
 import torch
+
 from mei.legacy.utils import varargin
 
 
 class ChangeNormAndClip:
-    """ Change the norm of the input.
+    """Change the norm of the input.
     Arguments:
         norm (float or tensor): Desired norm. If tensor, it should be the same length as
             x.
@@ -22,7 +23,7 @@ class ChangeNormAndClip:
 
 
 class ChangeStdClampedMean:
-    """ Change the norm of the input.
+    """Change the norm of the input.
     Arguments:
         norm (float or tensor): Desired norm. If tensor, it should be the same length as
             x.
@@ -37,7 +38,7 @@ class ChangeStdClampedMean:
 
     @varargin
     def __call__(self, x, iteration=None):
-        x = x.clamp(self.x_min,  self.x_max)
+        x = x.clamp(self.x_min, self.x_max)
         x_std = torch.std(x.view(len(x), -1), dim=-1)
 
         # set x to have the desired std
