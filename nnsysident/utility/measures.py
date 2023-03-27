@@ -209,6 +209,29 @@ def get_loss(
             )
 
 
+def get_model_performance(model, dataloaders, loss_function, device="cpu", print_performance=True):
+    output = {"correlation": {}, "loss": {}}
+    for tier in ["train", "validation", "test"]:
+        output["correlation"][tier] = get_correlations(
+            model, dataloaders[tier], device=device, per_neuron=False)
+
+        output["loss"][tier] = get_loss(
+            model,
+            dataloaders[tier],
+            loss_function,
+            device=device,
+            per_neuron=False,
+            avg=True,
+        )
+    if print_performance:
+        for measure, tiers in output.items():
+            print(measure)
+            for tier, value in tiers.items():
+                print(tier + ":" + " "*(13-len(tier)) + "{0:.3f} ".format(value))
+            print("__________________________")
+
+
+
 def get_repeats(dataloader, min_repeats=2):
     # save the responses of all neuron to the repeats of an image as an element in a list
     repeated_inputs = []
