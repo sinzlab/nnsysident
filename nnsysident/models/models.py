@@ -1,7 +1,6 @@
 import copy
 
 import numpy as np
-from nnfabrik.utility.nn_helpers import get_dims_for_loader_dict, set_random_seed
 
 from neuralpredictors.layers.cores import SE2dCore, Stacked2dCore
 from neuralpredictors.layers.encoders import FiringRateEncoder, ZIGEncoder, ZILEncoder
@@ -11,7 +10,7 @@ from neuralpredictors.layers.readouts import (FullFactorized2d, FullGaussian2d, 
 from neuralpredictors.layers.shifters import MLPShifter
 from neuralpredictors.utils import get_module_output
 
-from ..utility.data_helpers import unpack_data_info
+from ..utility.data_helpers import get_dims_for_loader_dict, set_random_seed, unpack_data_info, get_mean_activity_dict
 
 
 class MultiplePointPooled2d(MultiReadoutBase):
@@ -36,15 +35,6 @@ class MultipleFullFactorized2d(MultiReadoutSharedParametersBase):
 
 class MultipleGeneralizedFullGaussian2d(MultiReadoutSharedParametersBase):
     _base_readout = GeneralizedFullGaussianReadout2d
-
-
-def get_mean_activity_dict(dataloaders):
-    # initializing readout bias to mean response
-    mean_activity_dict = {}
-    for key, value in dataloaders.items():
-        data = next(iter(value))
-        mean_activity_dict[key] = data.responses.mean(0)
-    return mean_activity_dict
 
 
 class SE2DCoreGaussianReadoutModel:
