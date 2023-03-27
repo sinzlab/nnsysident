@@ -14,35 +14,34 @@ from ..utility import measures
 
 
 def standard_trainer(
-    model,
-    dataloaders,
-    seed,
-    loss_function="PoissonLoss",
-    avg_loss=False,
-    scale_loss=True,
-    stop_function="get_correlations",
-    loss_accum_batch_n=None,
-    device="cuda",
-    verbose=True,
-    interval=1,
-    patience=5,
-    epoch=0,
-    lr_init=0.005,
-    max_iter=200,
-    maximize=True,
-    tolerance=1e-6,
-    restore_best=True,
-    lr_decay_steps=3,
-    lr_decay_factor=0.3,
-    min_lr=0.0001,
-    cb=None,
-    track_training=False,
-    return_test_score=False,
-    detach_core=False,
-    **kwargs
+        model,
+        dataloaders,
+        seed,
+        loss_function="PoissonLoss",
+        avg_loss=False,
+        scale_loss=True,
+        stop_function="get_correlations",
+        loss_accum_batch_n=None,
+        device="cuda",
+        verbose=True,
+        interval=1,
+        patience=5,
+        epoch=0,
+        lr_init=0.005,
+        max_iter=200,
+        maximize=True,
+        tolerance=1e-6,
+        restore_best=True,
+        lr_decay_steps=3,
+        lr_decay_factor=0.3,
+        min_lr=0.0001,
+        cb=None,
+        track_training=False,
+        return_test_score=False,
+        detach_core=False,
+        **kwargs
 ):
     """
-
     Args:
         model: model to be trained
         dataloaders: dataloaders containing the data to train the model with
@@ -71,9 +70,7 @@ def standard_trainer(
         detach_core: whether to detach the core from the gradient computation. Used when fine tuning the readout but
                      keeping the core fixed.
         **kwargs:
-
     Returns:
-
     """
 
     if stop_function == "get_loss" and maximize:
@@ -176,18 +173,18 @@ def standard_trainer(
 
     # train over epochs
     for epoch, val_obj in early_stopping(
-        model,
-        stop_closure,
-        interval=interval,
-        patience=patience,
-        start=epoch,
-        max_iter=max_iter,
-        maximize=maximize,
-        tolerance=tolerance,
-        restore_best=restore_best,
-        tracker=tracker,
-        scheduler=scheduler,
-        lr_decay_steps=lr_decay_steps,
+            model,
+            stop_closure,
+            interval=interval,
+            patience=patience,
+            start=epoch,
+            max_iter=max_iter,
+            maximize=maximize,
+            tolerance=tolerance,
+            restore_best=restore_best,
+            tracker=tracker,
+            scheduler=scheduler,
+            lr_decay_steps=lr_decay_steps,
     ):
 
         # print the quantities from tracker
@@ -203,7 +200,7 @@ def standard_trainer(
         # train over batches
         optimizer.zero_grad()
         for batch_no, (data_key, data) in tqdm(
-            enumerate(LongCycler(dataloaders["train"])), total=n_iterations, desc="Epoch {}".format(epoch)
+                enumerate(LongCycler(dataloaders["train"])), total=n_iterations, desc="Epoch {}".format(epoch)
         ):
 
             loss = full_objective(model, dataloaders["train"], data_key, data, detach_core=detach_core)
@@ -217,19 +214,20 @@ def standard_trainer(
     tracker.finalize() if track_training else None
 
     # store relevant data
-    output = {"tracker_output": {k: v for k, v in tracker.log.items()}} if track_training else {}
+    output = {
+        "tracker_output": {k: v for k, v in tracker.log.items()} if track_training else {},
+        "best_model_stats": {"correlation": {}, "loss": {}},
+    }
     for tier in ["train", "validation", "test"]:
         output["best_model_stats"]["correlation"][tier] = measures.get_correlations(
             model, dataloaders[tier], device=device, as_dict=False, per_neuron=False
         )
-        output["best_model_stats"]["loss"][tier] = partial(
-            measures.get_loss,
+        output["best_model_stats"]["loss"][tier] = measures.get_loss(
             model,
             dataloaders[tier],
+            loss_function,
             device=device,
             per_neuron=False,
-            avg=False,
-            loss_function=loss_function,
         )
 
     score = (
