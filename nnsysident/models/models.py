@@ -17,6 +17,11 @@ from neuralpredictors.layers.shifters import MLPShifter
 from neuralpredictors.utils import get_module_output
 
 from ..utility.data_helpers import get_dims_for_loader_dict, set_random_seed, unpack_data_info, get_mean_activity_dict
+from .point_readout_preliminary import GeneralizedPointPooled2d
+
+
+class MultipleGeneralizedPointPooled2d(MultiReadoutBase):
+    _base_readout = GeneralizedPointPooled2d
 
 
 class MultiplePointPooled2d(MultiReadoutBase):
@@ -221,8 +226,8 @@ class Stacked2dCoreReadoutModel:
                 inferred_params_n=inferred_params_n,
             )
 
-        elif self.readout_type == "MultiplePointPooled2d":
-            readout = MultiplePointPooled2d(
+        elif self.readout_type == "MultipleGeneralizedPointPooled2d":
+            readout = MultipleGeneralizedPointPooled2d(
                 in_shape_dict=in_shape_dict,
                 n_neurons_dict=n_neurons_dict,
                 mean_activity_dict=mean_activity_dict,
@@ -231,6 +236,7 @@ class Stacked2dCoreReadoutModel:
                 bias=readout_bias,
                 gamma_readout=gamma_readout,
                 init_range=init_range,
+                inferred_params_n=inferred_params_n,
             )
         else:
             raise ValueError("Readout Type not defined")
