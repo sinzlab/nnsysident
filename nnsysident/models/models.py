@@ -252,7 +252,7 @@ class Stacked2dCoreReadoutModel:
 
 
 class Stacked2dPointPooled_Poisson(Stacked2dCoreReadoutModel):
-    def __int__(self):
+    def __init__(self):
         super().__init__()
         self.readout_type = "MultiplePointPooled2d"
 
@@ -270,7 +270,7 @@ class Stacked2dPointPooled_Poisson(Stacked2dCoreReadoutModel):
 
 
 class Stacked2dFullGaussian2d_Poisson(Stacked2dCoreReadoutModel):
-    def __int__(self):
+    def __init__(self):
         super().__init__()
         self.readout_type = "MultipleGeneralizedFullGaussian2d"
 
@@ -288,7 +288,7 @@ class Stacked2dFullGaussian2d_Poisson(Stacked2dCoreReadoutModel):
 
 
 class Stacked2dFullGaussian2d_ZIG(Stacked2dCoreReadoutModel):
-    def __int__(self):
+    def __init__(self):
         super().__init__()
         self.readout_type = "MultipleGeneralizedFullGaussian2d"
 
@@ -337,7 +337,7 @@ class Stacked2dFullGaussian2d_ZIG(Stacked2dCoreReadoutModel):
 
 
 class Stacked2dFullGaussian2d_ZIL(Stacked2dCoreReadoutModel):
-    def __int__(self):
+    def __init__(self):
         super().__init__()
         self.readout_type = "MultipleGeneralizedFullGaussian2d"
 
