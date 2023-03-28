@@ -112,6 +112,7 @@ class Stacked2dCoreReadoutModel:
 
         if data_info is not None:
             n_neurons_dict, in_shapes_dict, input_channels = unpack_data_info(data_info)
+            mean_activity_dict = None
         else:
             if "train" in dataloaders.keys():
                 dataloaders = dataloaders["train"]
@@ -119,10 +120,12 @@ class Stacked2dCoreReadoutModel:
             # Obtain the named tuple fields from the first entry of the first dataloader in the dictionary
             in_name, out_name = next(iter(list(dataloaders.values())[0]))._fields[:2]
 
+            mean_activity_dict = get_mean_activity_dict(dataloaders) if readout_bias else None
             session_shape_dict = get_dims_for_loader_dict(dataloaders)
             n_neurons_dict = {k: v[out_name][1] for k, v in session_shape_dict.items()}
             in_shapes_dict = {k: v[in_name] for k, v in session_shape_dict.items()}
             input_channels = [v[in_name][1] for v in session_shape_dict.values()]
+        in_shape_dict = {k: get_module_output(core, in_shape)[1:] for k, in_shape in in_shapes_dict.items()}
 
         core_input_channels = (
             list(input_channels.values())[0] if isinstance(input_channels, dict) else input_channels[0]
@@ -152,12 +155,6 @@ class Stacked2dCoreReadoutModel:
             batch_norm_scale=batch_norm_scale,
             independent_bn_bias=independent_bn_bias,
         )
-
-        # Specify the input shape for the readout
-        in_shape_dict = {k: get_module_output(core, in_shape)[1:] for k, in_shape in in_shapes_dict.items()}
-
-        # Use the mean activity to initialize the readout bias
-        mean_activity_dict = get_mean_activity_dict(dataloaders) if readout_bias and data_info is None else None
 
         if self.readout_type == "MultipleGeneralizedFullGaussian2d":
             source_grids = None
