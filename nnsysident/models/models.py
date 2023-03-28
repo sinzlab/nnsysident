@@ -125,7 +125,6 @@ class Stacked2dCoreReadoutModel:
             n_neurons_dict = {k: v[out_name][1] for k, v in session_shape_dict.items()}
             in_shapes_dict = {k: v[in_name] for k, v in session_shape_dict.items()}
             input_channels = [v[in_name][1] for v in session_shape_dict.values()]
-        in_shape_dict = {k: get_module_output(core, in_shape)[1:] for k, in_shape in in_shapes_dict.items()}
 
         core_input_channels = (
             list(input_channels.values())[0] if isinstance(input_channels, dict) else input_channels[0]
@@ -155,6 +154,7 @@ class Stacked2dCoreReadoutModel:
             batch_norm_scale=batch_norm_scale,
             independent_bn_bias=independent_bn_bias,
         )
+        in_shape_dict = {k: get_module_output(core, in_shape)[1:] for k, in_shape in in_shapes_dict.items()}
 
         if self.readout_type == "MultipleGeneralizedFullGaussian2d":
             source_grids = None
