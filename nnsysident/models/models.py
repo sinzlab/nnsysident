@@ -257,7 +257,7 @@ class Stacked2dCoreReadoutModel:
 class Stacked2dPointPooled_Poisson(Stacked2dCoreReadoutModel):
     def __init__(self):
         super().__init__()
-        self.readout_type = "MultiplePointPooled2d"
+        self.readout_type = "MultipleGeneralizedPointPooled2d"
 
     def build_model(self, dataloaders, seed, elu_offset=0, **kwargs):
         inferred_params_n = 1
