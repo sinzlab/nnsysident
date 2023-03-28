@@ -5,23 +5,13 @@ import numpy as np
 from neuralpredictors.layers.cores import Stacked2dCore
 from neuralpredictors.layers.encoders import FiringRateEncoder, ZIGEncoder, ZILEncoder
 from neuralpredictors.layers.modulators.mlp import MLPModulator
-from neuralpredictors.layers.readouts import (
-    FullFactorized2d,
-    FullGaussian2d,
-    GeneralizedFullGaussianReadout2d,
-    MultiReadoutBase,
-    MultiReadoutSharedParametersBase,
-    PointPooled2d,
-)
+from neuralpredictors.layers.readouts import (FullFactorized2d, FullGaussian2d, GeneralizedFullGaussianReadout2d,
+                                              GeneralizedPointPooled2d, MultiReadoutBase,
+                                              MultiReadoutSharedParametersBase, PointPooled2d)
 from neuralpredictors.layers.shifters import MLPShifter
 from neuralpredictors.utils import get_module_output
 
-from ..utility.data_helpers import get_dims_for_loader_dict, set_random_seed, unpack_data_info, get_mean_activity_dict
-from .point_readout_preliminary import GeneralizedPointPooled2d
-
-
-class MultipleGeneralizedPointPooled2d(MultiReadoutBase):
-    _base_readout = GeneralizedPointPooled2d
+from ..utility.data_helpers import get_dims_for_loader_dict, get_mean_activity_dict, set_random_seed, unpack_data_info
 
 
 class MultiplePointPooled2d(MultiReadoutBase):
@@ -46,6 +36,10 @@ class MultipleFullFactorized2d(MultiReadoutSharedParametersBase):
 
 class MultipleGeneralizedFullGaussian2d(MultiReadoutSharedParametersBase):
     _base_readout = GeneralizedFullGaussianReadout2d
+
+
+class MultipleGeneralizedPointPooled2d(MultiReadoutBase):
+    _base_readout = GeneralizedPointPooled2d
 
 
 class Stacked2dCoreReadoutModel:
