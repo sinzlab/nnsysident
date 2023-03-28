@@ -78,7 +78,7 @@ class GeneralizedPointPooled2d(PointPooled2d):
             feat = feat[:, :, :, out_idx]
             grid = self.grid[:, out_idx]
             if self.bias is not None:
-                bias = self.bias[out_idx]
+                bias = self.bias[:, out_idx]
             outdims = len(out_idx)
 
         if shift is None:
@@ -100,3 +100,17 @@ class GeneralizedPointPooled2d(PointPooled2d):
         if self.bias is not None:
             y = y + bias.unsqueeze(1)
         return y.squeeze()
+
+    def initialize_bias(self, mean_activity=None):
+        """
+        Initialize the biases in readout.
+        Args:
+        mean_activity (dict): Dictionary containing the mean activity of neurons for a specific dataset.
+        Should be of form {'data_key': mean_activity}
+        Returns:
+        """
+        if mean_activity is None:
+            warnings.warn("Readout is NOT initialized with mean activity but with 0!")
+            self.bias.data.fill_(0)
+        else:
+            self.bias.data = mean_activity.repeat(self.bias.shape[0], 1)
