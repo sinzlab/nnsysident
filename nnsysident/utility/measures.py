@@ -24,8 +24,8 @@ def model_predictions_repeats(model, dataloader, data_key, device="cpu", broadca
     target = []
     unique_images = torch.empty(0)
     for datapoint in dataloader:
-        images = datapoint.images if "images" in datapoint._fields else datapoint.inputs
-        responses = datapoint.responses if "responses" in datapoint._fields else datapoint.targets
+        images = datapoint.images.to(device) if "images" in datapoint._fields else datapoint.inputs.to(device)
+        responses = datapoint.responses.to(device) if "responses" in datapoint._fields else datapoint.targets.to(device)
 
         if len(images.shape) == 5:
             images = images.squeeze(dim=0)
@@ -79,10 +79,10 @@ def model_predictions(model, dataloader, data_key, device="cpu"):
         with device_state(model, device) if not isinstance(model, types.FunctionType) else contextlib.nullcontext():
             outputs, targets = [], []
             for b in dataloader:
-                pupil_center = b.pupil_center if hasattr(b, "pupil_center") else None
-                behavior = b.behavior if hasattr(b, "behavior") else None
-                images = b.images if "images" in b._fields else b.inputs
-                responses = b.responses if "responses" in b._fields else b.targets
+                pupil_center = b.pupil_center.to(device) if hasattr(b, "pupil_center") else None
+                behavior = b.behavior.to(device) if hasattr(b, "behavior") else None
+                images = b.images.to(device) if "images" in b._fields else b.inputs.to(device)
+                responses = b.responses if "responses" in b._fields else b.targets.to(device)
                 outputs.append(
                     model.predict_mean(images, data_key=data_key, pupil_center=pupil_center, behavior=behavior)
                     .cpu()
@@ -175,10 +175,10 @@ def get_loss(
         for k, v in dataloaders.items():
             loss = []
             for b in v:
-                images = b.images if "images" in b._fields else b.inputs
-                responses = b.responses if "responses" in b._fields else b.targets
-                pupil_center = b.pupil_center if hasattr(b, "pupil_center") else None
-                behavior = b.behavior if hasattr(b, "behavior") else None
+                images = b.images.to(device) if "images" in b._fields else b.inputs.to(device)
+                responses = b.responses.to(device) if "responses" in b._fields else b.targets.to(device)
+                pupil_center = b.pupil_center.to(device) if hasattr(b, "pupil_center") else None
+                behavior = b.behavior.to(device) if hasattr(b, "behavior") else None
                 if hasattr(model, "transform"):
                     loss.append(
                         loss_fn(
