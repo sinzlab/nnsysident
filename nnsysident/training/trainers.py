@@ -77,12 +77,14 @@ def standard_trainer(
         warn("A loss function is the stopping criterion but 'maximize' is set to True for the early stopping")
 
     def full_objective(model, dataloader, data_key, args, detach_core):
-        loss_scale = np.sqrt(len(dataloader[data_key].dataset) / args.images.shape[0]) if scale_loss else 1.0
+        images = args.images if "images" in args._fields else args.inputs
+        responses = args.responses if "responses" in args._fields else args.targets
+        loss_scale = np.sqrt(len(dataloader[data_key].dataset) / images.shape[0]) if scale_loss else 1.0
         regularizers = model.regularizer(data_key=data_key, detach_core=detach_core)
         pupil_center = args.pupil_center if hasattr(args, "pupil_center") else None
         behavior = args.behavior if hasattr(args, "behavior") else None
         output = model(
-            args.images.to(device),
+            images.to(device),
             data_key=data_key,
             detach_core=detach_core,
             behavior=behavior,
@@ -92,12 +94,12 @@ def standard_trainer(
             likelihood = criterion(
                 model=model,
                 data_key=data_key,
-                target=args.responses.to(device),
+                target=responses.to(device),
                 output=output,
             )
         else:
             likelihood = criterion(
-                target=args.responses.to(device),
+                target=responses.to(device),
                 output=output,
             )
         return loss_scale * likelihood + regularizers

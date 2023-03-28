@@ -24,8 +24,8 @@ def model_predictions_repeats(model, dataloader, data_key, device="cpu", broadca
     target = []
     unique_images = torch.empty(0)
     for datapoint in dataloader:
-        images = datapoint.images
-        responses = datapoint.responses
+        images = datapoint.images if "images" in datapoint._fields else datapoint.inputs
+        responses = datapoint.responses if "responses" in datapoint._fields else datapoint.targets
 
         if len(images.shape) == 5:
             images = images.squeeze(dim=0)
@@ -81,15 +81,17 @@ def model_predictions(model, dataloader, data_key, device="cpu"):
             for b in dataloader:
                 pupil_center = b.pupil_center if hasattr(b, "pupil_center") else None
                 behavior = b.behavior if hasattr(b, "behavior") else None
+                images = b.images if "images" in b._fields else b.inputs
+                responses = b.responses if "responses" in b._fields else b.targets
                 outputs.append(
-                    model.predict_mean(b.images, data_key=data_key, pupil_center=pupil_center, behavior=behavior)
+                    model.predict_mean(images, data_key=data_key, pupil_center=pupil_center, behavior=behavior)
                     .cpu()
                     .data.numpy()
                 )
                 targets.append(
-                    model.transform(b.responses, data_key=data_key)[0].cpu().data.numpy()
+                    model.transform(responses, data_key=data_key)[0].cpu().data.numpy()
                     if hasattr(model, "transform")
-                    else b.responses.cpu().data.numpy()
+                    else responses.cpu().data.numpy()
                 )
             outputs = np.vstack(outputs)
             targets = np.vstack(targets)
@@ -173,13 +175,15 @@ def get_loss(
         for k, v in dataloaders.items():
             loss = []
             for b in v:
+                images = b.images if "images" in b._fields else b.inputs
+                responses = b.responses if "responses" in b._fields else b.targets
                 pupil_center = b.pupil_center if hasattr(b, "pupil_center") else None
                 behavior = b.behavior if hasattr(b, "behavior") else None
                 if hasattr(model, "transform"):
                     loss.append(
                         loss_fn(
-                            target=model.transform(b.responses.to(device), data_key=k),
-                            output=model(b.images.to(device), data_key=k, pupil_center=pupil_center, behavior=behavior),
+                            target=model.transform(responses.to(device), data_key=k),
+                            output=model(images.to(device), data_key=k, pupil_center=pupil_center, behavior=behavior),
                         )
                         .cpu()
                         .data.numpy()
@@ -187,8 +191,8 @@ def get_loss(
                 else:
                     loss.append(
                         loss_fn(
-                            target=b.responses.to(device),
-                            output=model(b.images.to(device), data_key=k, pupil_center=pupil_center, behavior=behavior),
+                            target=responses.to(device),
+                            output=model(images.to(device), data_key=k, pupil_center=pupil_center, behavior=behavior),
                         )
                         .cpu()
                         .data.numpy()
