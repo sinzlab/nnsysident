@@ -2,15 +2,16 @@ import copy
 
 import numpy as np
 
-from neuralpredictors.layers.cores import SE2dCore, Stacked2dCore
+from neuralpredictors.layers.cores import Stacked2dCore
 from neuralpredictors.layers.encoders import FiringRateEncoder, ZIGEncoder, ZILEncoder
 from neuralpredictors.layers.modulators.mlp import MLPModulator
 from neuralpredictors.layers.readouts import (FullFactorized2d, FullGaussian2d, GeneralizedFullGaussianReadout2d,
-                                              MultiReadoutBase, MultiReadoutSharedParametersBase, PointPooled2d)
+                                              GeneralizedPointPooled2d, MultiReadoutBase,
+                                              MultiReadoutSharedParametersBase, PointPooled2d)
 from neuralpredictors.layers.shifters import MLPShifter
 from neuralpredictors.utils import get_module_output
 
-from ..utility.data_helpers import get_dims_for_loader_dict, set_random_seed, unpack_data_info, get_mean_activity_dict
+from ..utility.data_helpers import get_dims_for_loader_dict, get_mean_activity_dict, set_random_seed, unpack_data_info
 
 
 class MultiplePointPooled2d(MultiReadoutBase):
@@ -37,9 +38,13 @@ class MultipleGeneralizedFullGaussian2d(MultiReadoutSharedParametersBase):
     _base_readout = GeneralizedFullGaussianReadout2d
 
 
-class SE2DCoreGaussianReadoutModel:
+class MultipleGeneralizedPointPooled2d(MultiReadoutBase):
+    _base_readout = GeneralizedPointPooled2d
+
+
+class Stacked2dCoreReadoutModel:
     def __init__(self):
-        pass
+        self.readout_type = None
 
     def build_base_model(
         self,
@@ -65,16 +70,18 @@ class SE2DCoreGaussianReadoutModel:
         laplace_padding=None,
         input_regularizer="LaplaceL2norm",
         stack=-1,
-        se_reduction=32,
-        n_se_blocks=0,
         depth_separable=True,
         linear=False,
-        # readout args
-        init_mu_range=0.3,
-        init_sigma=0.1,
+        inferred_params_n=1,
+        modulator_kwargs=None,
+        shifter_kwargs=None,
+        # general readout args
         readout_bias=True,
         gamma_readout=None,
         feature_reg_weight=0.0076,
+        # gaussian readout
+        init_mu_range=0.3,
+        init_sigma=0.1,
         gauss_type="full",
         grid_mean_predictor={
             "type": "cortex",
@@ -88,9 +95,10 @@ class SE2DCoreGaussianReadoutModel:
         share_transform=False,
         init_noise=1e-3,
         init_transform_scale=0.2,
-        inferred_params_n=1,
-        modulator_kwargs=None,
-        shifter_kwargs=None,
+        # pointpooled readout
+        pool_steps=2,
+        pool_kern=3,
+        init_range=0.2,
         **kwargs,
     ):
         if gamma_readout is not None:
@@ -103,6 +111,7 @@ class SE2DCoreGaussianReadoutModel:
 
         if data_info is not None:
             n_neurons_dict, in_shapes_dict, input_channels = unpack_data_info(data_info)
+            mean_activity_dict = None
         else:
             if "train" in dataloaders.keys():
                 dataloaders = dataloaders["train"]
@@ -110,6 +119,7 @@ class SE2DCoreGaussianReadoutModel:
             # Obtain the named tuple fields from the first entry of the first dataloader in the dictionary
             in_name, out_name = next(iter(list(dataloaders.values())[0]))._fields[:2]
 
+            mean_activity_dict = get_mean_activity_dict(dataloaders) if readout_bias else None
             session_shape_dict = get_dims_for_loader_dict(dataloaders)
             n_neurons_dict = {k: v[out_name][1] for k, v in session_shape_dict.items()}
             in_shapes_dict = {k: v[in_name] for k, v in session_shape_dict.items()}
@@ -119,52 +129,7 @@ class SE2DCoreGaussianReadoutModel:
             list(input_channels.values())[0] if isinstance(input_channels, dict) else input_channels[0]
         )
 
-        source_grids = None
-        grid_mean_predictor_type = None
-        if grid_mean_predictor is not None:
-            grid_mean_predictor = copy.deepcopy(grid_mean_predictor)
-            grid_mean_predictor_type = grid_mean_predictor.pop("type")
-            if grid_mean_predictor_type == "cortex":
-                input_dim = grid_mean_predictor.pop("input_dimensions", 2)
-                source_grids = {}
-                for k, v in dataloaders.items():
-                    # real data
-                    try:
-                        if v.dataset.neurons.animal_ids[0] != 0:
-                            source_grids[k] = v.dataset.neurons.cell_motor_coordinates[:, :input_dim]
-                        # simulated data -> get random linear non-degenerate transform of true positions
-                        else:
-                            source_grid_true = v.dataset.neurons.center[:, :input_dim]
-                            det = 0.0
-                            loops = 0
-                            grid_bias = np.random.rand(2) * 3
-                            while det < 5.0 and loops < 100:
-                                matrix = np.random.rand(2, 2) * 3
-                                det = np.linalg.det(matrix)
-                                loops += 1
-                            assert det > 5.0, "Did not find a non-degenerate matrix"
-                            source_grids[k] = np.add((matrix @ source_grid_true.T).T, grid_bias)
-                    except FileNotFoundError:
-                        print("Dataset type is not recognized to be from Baylor College of Medicine.")
-                        source_grids[k] = v.dataset.neurons.cell_motor_coordinates[:, :input_dim]
-            elif grid_mean_predictor_type == "shared":
-                pass
-            else:
-                raise ValueError("Grid mean predictor type {} not understood.".format(grid_mean_predictor_type))
-
-        shared_match_ids = None
-        if share_features or share_grid:
-            shared_match_ids = {k: v.dataset.neurons.multi_match_id for k, v in dataloaders.items()}
-            all_multi_unit_ids = set(np.hstack(shared_match_ids.values()))
-
-            for match_id in shared_match_ids.values():
-                assert len(set(match_id) & all_multi_unit_ids) == len(
-                    all_multi_unit_ids
-                ), "All multi unit IDs must be present in all datasets"
-
         set_random_seed(seed)
-
-        # TODO: Change back to SE2dCore once Konsti fixed Neuralpredictor
 
         core = Stacked2dCore(
             input_channels=core_input_channels,
@@ -183,63 +148,92 @@ class SE2DCoreGaussianReadoutModel:
             laplace_padding=laplace_padding,
             input_regularizer=input_regularizer,
             stack=stack,
-            # se_reduction=se_reduction,
-            # n_se_blocks=n_se_blocks,
             depth_separable=depth_separable,
             linear=linear,
             batch_norm_scale=batch_norm_scale,
             independent_bn_bias=independent_bn_bias,
         )
-
-        # core = SE2dCore(
-        #     input_channels=core_input_channels,
-        #     hidden_channels=hidden_channels,
-        #     input_kern=input_kern,
-        #     hidden_kern=hidden_kern,
-        #     layers=layers,
-        #     gamma_input=gamma_input,
-        #     skip=skip,
-        #     final_nonlinearity=final_nonlinearity,
-        #     bias=bias,
-        #     momentum=momentum,
-        #     pad_input=pad_input,
-        #     batch_norm=batch_norm,
-        #     hidden_dilation=hidden_dilation,
-        #     laplace_padding=laplace_padding,
-        #     input_regularizer=input_regularizer,
-        #     stack=stack,
-        #     se_reduction=se_reduction,
-        #     n_se_blocks=n_se_blocks,
-        #     depth_separable=depth_separable,
-        #     linear=linear,
-        # )
-
-        # Specify the input shape for the readout
         in_shape_dict = {k: get_module_output(core, in_shape)[1:] for k, in_shape in in_shapes_dict.items()}
 
-        # Use the mean activity to initialize the readout bias
-        mean_activity_dict = get_mean_activity_dict(dataloaders) if readout_bias and data_info is None else None
+        if self.readout_type == "MultipleGeneralizedFullGaussian2d":
+            source_grids = None
+            grid_mean_predictor_type = None
+            if grid_mean_predictor is not None:
+                grid_mean_predictor = copy.deepcopy(grid_mean_predictor)
+                grid_mean_predictor_type = grid_mean_predictor.pop("type")
+                if grid_mean_predictor_type == "cortex":
+                    input_dim = grid_mean_predictor.pop("input_dimensions", 2)
+                    source_grids = {}
+                    for k, v in dataloaders.items():
+                        # real data
+                        try:
+                            if v.dataset.neurons.animal_ids[0] != 0:
+                                source_grids[k] = v.dataset.neurons.cell_motor_coordinates[:, :input_dim]
+                            # simulated data -> get random linear non-degenerate transform of true positions
+                            else:
+                                source_grid_true = v.dataset.neurons.center[:, :input_dim]
+                                det = 0.0
+                                loops = 0
+                                grid_bias = np.random.rand(2) * 3
+                                while det < 5.0 and loops < 100:
+                                    matrix = np.random.rand(2, 2) * 3
+                                    det = np.linalg.det(matrix)
+                                    loops += 1
+                                assert det > 5.0, "Did not find a non-degenerate matrix"
+                                source_grids[k] = np.add((matrix @ source_grid_true.T).T, grid_bias)
+                        except FileNotFoundError:
+                            print("Dataset type is not recognized to be from Baylor College of Medicine.")
+                            source_grids[k] = v.dataset.neurons.cell_motor_coordinates[:, :input_dim]
+                elif grid_mean_predictor_type == "shared":
+                    pass
+                else:
+                    raise ValueError("Grid mean predictor type {} not understood.".format(grid_mean_predictor_type))
 
-        readout = MultipleGeneralizedFullGaussian2d(
-            in_shape_dict=in_shape_dict,
-            n_neurons_dict=n_neurons_dict,
-            mean_activity_dict=mean_activity_dict,
-            init_mu_range=init_mu_range,
-            bias=readout_bias,
-            init_sigma=init_sigma,
-            feature_reg_weight=feature_reg_weight,
-            gauss_type=gauss_type,
-            grid_mean_predictor=grid_mean_predictor,
-            grid_mean_predictor_type=grid_mean_predictor_type,
-            source_grids=source_grids,
-            share_features=share_features,
-            share_grid=share_grid,
-            share_transform=share_transform,
-            shared_match_ids=shared_match_ids,
-            init_noise=init_noise,
-            init_transform_scale=init_transform_scale,
-            inferred_params_n=inferred_params_n,
-        )
+            shared_match_ids = None
+            if share_features or share_grid:
+                shared_match_ids = {k: v.dataset.neurons.multi_match_id for k, v in dataloaders.items()}
+                all_multi_unit_ids = set(np.hstack(shared_match_ids.values()))
+
+                for match_id in shared_match_ids.values():
+                    assert len(set(match_id) & all_multi_unit_ids) == len(
+                        all_multi_unit_ids
+                    ), "All multi unit IDs must be present in all datasets"
+
+            readout = MultipleGeneralizedFullGaussian2d(
+                in_shape_dict=in_shape_dict,
+                n_neurons_dict=n_neurons_dict,
+                mean_activity_dict=mean_activity_dict,
+                init_mu_range=init_mu_range,
+                bias=readout_bias,
+                init_sigma=init_sigma,
+                feature_reg_weight=feature_reg_weight,
+                gauss_type=gauss_type,
+                grid_mean_predictor=grid_mean_predictor,
+                grid_mean_predictor_type=grid_mean_predictor_type,
+                source_grids=source_grids,
+                share_features=share_features,
+                share_grid=share_grid,
+                share_transform=share_transform,
+                shared_match_ids=shared_match_ids,
+                init_noise=init_noise,
+                init_transform_scale=init_transform_scale,
+                inferred_params_n=inferred_params_n,
+            )
+
+        elif self.readout_type == "MultipleGeneralizedPointPooled2d":
+            readout = MultipleGeneralizedPointPooled2d(
+                in_shape_dict=in_shape_dict,
+                n_neurons_dict=n_neurons_dict,
+                mean_activity_dict=mean_activity_dict,
+                pool_steps=pool_steps,
+                pool_kern=pool_kern,
+                bias=readout_bias,
+                gamma_readout=gamma_readout,
+                init_range=init_range,
+                inferred_params_n=inferred_params_n,
+            )
+        else:
+            raise ValueError("Readout Type not defined")
 
         if modulator_kwargs is None:
             modulator = None
@@ -254,9 +248,10 @@ class SE2DCoreGaussianReadoutModel:
         return core, readout, modulator, shifter
 
 
-class SE2DFullGaussian2d_Poisson(SE2DCoreGaussianReadoutModel):
-    def __int__(self):
+class Stacked2dPointPooled_Poisson(Stacked2dCoreReadoutModel):
+    def __init__(self):
         super().__init__()
+        self.readout_type = "MultipleGeneralizedPointPooled2d"
 
     def build_model(self, dataloaders, seed, elu_offset=0, **kwargs):
         inferred_params_n = 1
@@ -271,9 +266,28 @@ class SE2DFullGaussian2d_Poisson(SE2DCoreGaussianReadoutModel):
         return model
 
 
-class SE2DFullGaussian2d_ZIG(SE2DCoreGaussianReadoutModel):
-    def __int__(self):
+class Stacked2dFullGaussian2d_Poisson(Stacked2dCoreReadoutModel):
+    def __init__(self):
         super().__init__()
+        self.readout_type = "MultipleGeneralizedFullGaussian2d"
+
+    def build_model(self, dataloaders, seed, elu_offset=0, **kwargs):
+        inferred_params_n = 1
+        core, readout, modulator, shifter = self.build_base_model(
+            dataloaders, seed, inferred_params_n=inferred_params_n, **kwargs
+        )
+
+        model = FiringRateEncoder(
+            core=core, readout=readout, modulator=modulator, shifter=shifter, elu_offset=elu_offset
+        )
+
+        return model
+
+
+class Stacked2dFullGaussian2d_ZIG(Stacked2dCoreReadoutModel):
+    def __init__(self):
+        super().__init__()
+        self.readout_type = "MultipleGeneralizedFullGaussian2d"
 
     def build_model(
         self,
@@ -319,9 +333,10 @@ class SE2DFullGaussian2d_ZIG(SE2DCoreGaussianReadoutModel):
         return model
 
 
-class SE2DFullGaussian2d_ZIL(SE2DCoreGaussianReadoutModel):
-    def __int__(self):
+class Stacked2dFullGaussian2d_ZIL(Stacked2dCoreReadoutModel):
+    def __init__(self):
         super().__init__()
+        self.readout_type = "MultipleGeneralizedFullGaussian2d"
 
     def build_model(
         self,

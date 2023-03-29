@@ -100,7 +100,12 @@ def get_mean_activity_dict(dataloaders):
     mean_activity_dict = {}
     for key, value in dataloaders.items():
         data = next(iter(value))
-        mean_activity_dict[key] = data.responses.mean(0)
+        if "targets" in data._fields:
+            mean_activity_dict[key] = data.targets.mean(0)
+        elif "responses" in data._fields:
+            mean_activity_dict[key] = data.responses.mean(0)
+        else:
+            raise ValueError()
     return mean_activity_dict
 
 

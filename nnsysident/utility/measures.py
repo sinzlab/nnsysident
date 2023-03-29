@@ -24,8 +24,8 @@ def model_predictions_repeats(model, dataloader, data_key, device="cpu", broadca
     target = []
     unique_images = torch.empty(0)
     for datapoint in dataloader:
-        images = datapoint.images
-        responses = datapoint.responses
+        images = datapoint.images.to(device) if "images" in datapoint._fields else datapoint.inputs.to(device)
+        responses = datapoint.responses.to(device) if "responses" in datapoint._fields else datapoint.targets.to(device)
 
         if len(images.shape) == 5:
             images = images.squeeze(dim=0)
@@ -79,17 +79,19 @@ def model_predictions(model, dataloader, data_key, device="cpu"):
         with device_state(model, device) if not isinstance(model, types.FunctionType) else contextlib.nullcontext():
             outputs, targets = [], []
             for b in dataloader:
-                pupil_center = b.pupil_center if hasattr(b, "pupil_center") else None
-                behavior = b.behavior if hasattr(b, "behavior") else None
+                pupil_center = b.pupil_center.to(device) if hasattr(b, "pupil_center") else None
+                behavior = b.behavior.to(device) if hasattr(b, "behavior") else None
+                images = b.images.to(device) if "images" in b._fields else b.inputs.to(device)
+                responses = b.responses if "responses" in b._fields else b.targets.to(device)
                 outputs.append(
-                    model.predict_mean(b.images, data_key=data_key, pupil_center=pupil_center, behavior=behavior)
+                    model.predict_mean(images, data_key=data_key, pupil_center=pupil_center, behavior=behavior)
                     .cpu()
                     .data.numpy()
                 )
                 targets.append(
-                    model.transform(b.responses, data_key=data_key)[0].cpu().data.numpy()
+                    model.transform(responses, data_key=data_key)[0].cpu().data.numpy()
                     if hasattr(model, "transform")
-                    else b.responses.cpu().data.numpy()
+                    else responses.cpu().data.numpy()
                 )
             outputs = np.vstack(outputs)
             targets = np.vstack(targets)
@@ -173,13 +175,15 @@ def get_loss(
         for k, v in dataloaders.items():
             loss = []
             for b in v:
-                pupil_center = b.pupil_center if hasattr(b, "pupil_center") else None
-                behavior = b.behavior if hasattr(b, "behavior") else None
+                images = b.images.to(device) if "images" in b._fields else b.inputs.to(device)
+                responses = b.responses.to(device) if "responses" in b._fields else b.targets.to(device)
+                pupil_center = b.pupil_center.to(device) if hasattr(b, "pupil_center") else None
+                behavior = b.behavior.to(device) if hasattr(b, "behavior") else None
                 if hasattr(model, "transform"):
                     loss.append(
                         loss_fn(
-                            target=model.transform(b.responses.to(device), data_key=k),
-                            output=model(b.images.to(device), data_key=k, pupil_center=pupil_center, behavior=behavior),
+                            target=model.transform(responses.to(device), data_key=k),
+                            output=model(images.to(device), data_key=k, pupil_center=pupil_center, behavior=behavior),
                         )
                         .cpu()
                         .data.numpy()
@@ -187,8 +191,8 @@ def get_loss(
                 else:
                     loss.append(
                         loss_fn(
-                            target=b.responses.to(device),
-                            output=model(b.images.to(device), data_key=k, pupil_center=pupil_center, behavior=behavior),
+                            target=responses.to(device),
+                            output=model(images.to(device), data_key=k, pupil_center=pupil_center, behavior=behavior),
                         )
                         .cpu()
                         .data.numpy()
@@ -212,8 +216,7 @@ def get_loss(
 def get_model_performance(model, dataloaders, loss_function, device="cpu", print_performance=True):
     output = {"correlation": {}, "loss": {}}
     for tier in ["train", "validation", "test"]:
-        output["correlation"][tier] = get_correlations(
-            model, dataloaders[tier], device=device, per_neuron=False)
+        output["correlation"][tier] = get_correlations(model, dataloaders[tier], device=device, per_neuron=False)
 
         output["loss"][tier] = get_loss(
             model,
@@ -225,11 +228,11 @@ def get_model_performance(model, dataloaders, loss_function, device="cpu", print
         )
     if print_performance:
         for measure, tiers in output.items():
-            print(measure)
+            print("\u0332".join(measure + " "))
+            print("")
             for tier, value in tiers.items():
-                print(tier + ":" + " "*(13-len(tier)) + "{0:.3f} ".format(value))
-            print("__________________________")
-
+                print(tier + ":" + " " * (13 - len(tier)) + "{0:.3f} ".format(value))
+            print("")
 
 
 def get_repeats(dataloader, min_repeats=2):
