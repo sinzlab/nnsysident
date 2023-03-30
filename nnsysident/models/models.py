@@ -72,13 +72,14 @@ class Stacked2dCoreReadoutModel:
         stack=-1,
         depth_separable=True,
         linear=False,
-        inferred_params_n=1,
+        # encoder args
         modulator_kwargs=None,
         shifter_kwargs=None,
         # general readout args
         readout_bias=True,
         gamma_readout=None,
         feature_reg_weight=0.0076,
+        inferred_params_n=1,
         # gaussian readout
         init_mu_range=0.3,
         init_sigma=0.1,
