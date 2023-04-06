@@ -10,8 +10,10 @@ services:
       - ../data_port:/src/data_port
       - ../neuralmetrics:/src/neuralmetrics
       - ../mei:/src/mei
-      - /var/sinz-shared/mouse/toliaslab/static:/notebooks/data
-      - /var/sinz-shared/mouse/toliaslab/static:/project/notebooks/data
+      - /var/sinz-shared/mouse/toliaslab/static:/notebooks/data/
+      - /var/sinz-shared/mouse/toliaslab/static:/project/notebooks/data/
+      - /var/sinz-shared/monkey/toliaslab:/notebooks/data/monkey/
+      - /var/sinz-shared/monkey/toliaslab:/project/notebooks/data/monkey/
     env_file: .env
     runtime: nvidia
 
