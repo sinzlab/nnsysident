@@ -6,8 +6,7 @@ import torch
 from nnfabrik.utility.nn_helpers import set_random_seed
 from tqdm import tqdm
 
-import neuralpredictors.measures.zero_inflated_losses as losses
-from neuralpredictors.measures.modules import PoissonLoss
+import neuralpredictors.measures as losses
 from neuralpredictors.training import LongCycler, MultipleObjectiveTracker, early_stopping
 
 from ..utility import measures
@@ -109,9 +108,8 @@ def standard_trainer(
     set_random_seed(seed)
     model.train()
 
-    criterion = (
-        PoissonLoss(avg=avg_loss) if loss_function == "PoissonLoss" else getattr(losses, loss_function)(avg=avg_loss)
-    )
+    criterion = getattr(losses, loss_function)(avg=avg_loss)
+
     stop_closure = partial(
         getattr(measures, stop_function),
         dataloaders=dataloaders["validation"],
@@ -206,6 +204,7 @@ def standard_trainer(
         ):
 
             loss = full_objective(model, dataloaders["train"], data_key, data, detach_core=detach_core)
+
             loss.backward()
             if (batch_no + 1) % optim_step_count == 0:
                 optimizer.step()
