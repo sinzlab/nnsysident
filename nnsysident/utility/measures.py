@@ -6,8 +6,7 @@ import numpy as np
 import torch
 
 from neuralpredictors.measures import corr
-from neuralpredictors.measures import zero_inflated_losses as losses
-from neuralpredictors.measures.modules import PoissonLoss
+import neuralpredictors.measures as losses
 from neuralpredictors.training import device_state, eval_state
 
 
