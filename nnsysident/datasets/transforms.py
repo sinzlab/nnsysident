@@ -5,8 +5,11 @@ from neuralpredictors.data.transforms import (NeuroNormalizer, ScaleInputs, Sele
 
 
 class NoNegativeResponses(StaticTransform):
+    def __init__(self, min_value=0.0):
+        self.min_value = min_value
+
     def __call__(self, x):
-        x[1][x[1] < 0.0] = 0.0
+        x[1][x[1] < 0.0] = self.min_value
         return x
 
 
@@ -56,12 +59,12 @@ def filter_neurons(dat, neuron_ids, neuron_n, neuron_base_seed, areas, layers, e
 
 
 def get_transforms(
-    dat, idx, normalize, exclude, loader_outputs, select_input_channel, scale, cuda, subtract_behavior_mean=False
+    dat, idx, normalize, exclude, loader_outputs, select_input_channel, scale, cuda, subtract_behavior_mean=False, min_value=1.e-15,
 ):
     assert not (
         "behavior" in loader_outputs and select_input_channel is not None
     ), "Selecting an Input Channel and Adding Behavior can not both be true"
-    transforms = [Subsample(idx), NoNegativeResponses(), ToTensor(cuda)]
+    transforms = [Subsample(idx), NoNegativeResponses(min_value), ToTensor(cuda)]
 
     if scale is not None:
         transforms.insert(0, ScaleInputs(scale=scale))
