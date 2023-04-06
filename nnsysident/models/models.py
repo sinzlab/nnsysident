@@ -3,7 +3,7 @@ import copy
 import numpy as np
 
 from neuralpredictors.layers.cores import Stacked2dCore
-from neuralpredictors.layers.encoders import FiringRateEncoder, ZIGEncoder, ZILEncoder
+from neuralpredictors.layers.encoders import FiringRateEncoder, GammaEncoder, GaussianEncoder, ZIGEncoder, ZILEncoder
 from neuralpredictors.layers.modulators.mlp import MLPModulator
 from neuralpredictors.layers.readouts import (FullFactorized2d, FullGaussian2d, GeneralizedFullGaussianReadout2d,
                                               GeneralizedPointPooled2d, MultiReadoutBase,
@@ -12,7 +12,7 @@ from neuralpredictors.layers.shifters import MLPShifter
 from neuralpredictors.utils import get_module_output
 
 from ..utility.data_helpers import get_dims_for_loader_dict, get_mean_activity_dict, set_random_seed, unpack_data_info
-from .encoders import GaussianEncoder, GammaEncoder
+
 
 class MultiplePointPooled2d(MultiReadoutBase):
     _base_readout = PointPooled2d
