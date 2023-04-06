@@ -12,7 +12,7 @@ from neuralpredictors.layers.shifters import MLPShifter
 from neuralpredictors.utils import get_module_output
 
 from ..utility.data_helpers import get_dims_for_loader_dict, get_mean_activity_dict, set_random_seed, unpack_data_info
-
+from .encoders import GaussianEncoder, GammaEncoder
 
 class MultiplePointPooled2d(MultiReadoutBase):
     _base_readout = PointPooled2d
@@ -246,7 +246,7 @@ class Stacked2dCoreReadoutModel:
         else:
             shifter = MLPShifter(list(n_neurons_dict.keys()), **shifter_kwargs)
 
-        return core, readout, modulator, shifter
+        return core, readout, shifter, modulator
 
 
 class Stacked2dPointPooled_Poisson(Stacked2dCoreReadoutModel):
@@ -256,16 +256,33 @@ class Stacked2dPointPooled_Poisson(Stacked2dCoreReadoutModel):
 
     def build_model(self, dataloaders, seed, elu_offset=0, **kwargs):
         inferred_params_n = 1
-        core, readout, modulator, shifter = self.build_base_model(
+        core, readout, shifter, modulator = self.build_base_model(
             dataloaders, seed, inferred_params_n=inferred_params_n, **kwargs
         )
 
         model = FiringRateEncoder(
-            core=core, readout=readout, modulator=modulator, shifter=shifter, elu_offset=elu_offset
+            core=core, readout=readout, shifter=shifter, modulator=modulator, elu_offset=elu_offset
         )
 
         return model
 
+
+class Stacked2dPointPooled_Gamma(Stacked2dCoreReadoutModel):
+    def __init__(self):
+        super().__init__()
+        self.readout_type = "MultipleGeneralizedPointPooled2d"
+
+    def build_model(self, dataloaders, seed, **kwargs):
+        inferred_params_n = 2
+        core, readout, shifter, modulator = self.build_base_model(
+            dataloaders, seed, inferred_params_n=inferred_params_n, **kwargs
+        )
+
+        model = GammaEncoder(
+            core=core, readout=readout, shifter=shifter, modulator=modulator
+        )
+
+        return model
 
 class Stacked2dFullGaussian2d_Poisson(Stacked2dCoreReadoutModel):
     def __init__(self):
@@ -274,12 +291,12 @@ class Stacked2dFullGaussian2d_Poisson(Stacked2dCoreReadoutModel):
 
     def build_model(self, dataloaders, seed, elu_offset=0, **kwargs):
         inferred_params_n = 1
-        core, readout, modulator, shifter = self.build_base_model(
+        core, readout, shifter, modulator = self.build_base_model(
             dataloaders, seed, inferred_params_n=inferred_params_n, **kwargs
         )
 
         model = FiringRateEncoder(
-            core=core, readout=readout, modulator=modulator, shifter=shifter, elu_offset=elu_offset
+            core=core, readout=readout, shifter=shifter, modulator=modulator, elu_offset=elu_offset
         )
 
         return model
@@ -314,7 +331,7 @@ class Stacked2dFullGaussian2d_ZIG(Stacked2dCoreReadoutModel):
             init_ks = {}
             for k, v in dataloaders["train"].items():
                 init_ks[k] = v.dataset.neurons.normalized_ks
-        core, readout, modulator, shifter = self.build_base_model(
+        core, readout, shifter, modulator = self.build_base_model(
             dataloaders, seed, inferred_params_n=inferred_params_n, **kwargs
         )
 
@@ -327,8 +344,8 @@ class Stacked2dFullGaussian2d_ZIG(Stacked2dCoreReadoutModel):
             k_image_dependent=k_image_dependent,
             loc_image_dependent=loc_image_dependent,
             q_image_dependent=q_image_dependent,
-            modulator=modulator,
             shifter=shifter,
+            modulator=modulator,
             offset=offset,
         )
         return model
@@ -358,7 +375,7 @@ class Stacked2dFullGaussian2d_ZIL(Stacked2dCoreReadoutModel):
             for k, v in dataloaders["train"].items():
                 zero_thresholds[k] = v.dataset.neurons.normalized_zero_thresholds
 
-        core, readout, modulator, shifter = self.build_base_model(
+        core, readout, shifter, modulator = self.build_base_model(
             dataloaders, seed, inferred_params_n=inferred_params_n, **kwargs
         )
 
@@ -370,8 +387,8 @@ class Stacked2dFullGaussian2d_ZIL(Stacked2dCoreReadoutModel):
             sigma2_image_dependent=sigma2_image_dependent,
             loc_image_dependent=loc_image_dependent,
             q_image_dependent=q_image_dependent,
-            modulator=modulator,
             shifter=shifter,
+            modulator=modulator,
             offset=offset,
         )
         return model
