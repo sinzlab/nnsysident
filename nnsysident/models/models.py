@@ -5,9 +5,15 @@ import numpy as np
 from neuralpredictors.layers.cores import Stacked2dCore
 from neuralpredictors.layers.encoders import FiringRateEncoder, GammaEncoder, GaussianEncoder, ZIGEncoder, ZILEncoder
 from neuralpredictors.layers.modulators.mlp import MLPModulator
-from neuralpredictors.layers.readouts import (FullFactorized2d, FullGaussian2d, GeneralizedFullGaussianReadout2d,
-                                              GeneralizedPointPooled2d, MultiReadoutBase,
-                                              MultiReadoutSharedParametersBase, PointPooled2d)
+from neuralpredictors.layers.readouts import (
+    FullFactorized2d,
+    FullGaussian2d,
+    GeneralizedFullGaussianReadout2d,
+    GeneralizedPointPooled2d,
+    MultiReadoutBase,
+    MultiReadoutSharedParametersBase,
+    PointPooled2d,
+)
 from neuralpredictors.layers.shifters import MLPShifter
 from neuralpredictors.utils import get_module_output
 
@@ -278,11 +284,26 @@ class Stacked2dPointPooled_Gamma(Stacked2dCoreReadoutModel):
             dataloaders, seed, inferred_params_n=inferred_params_n, **kwargs
         )
 
-        model = GammaEncoder(
-            core=core, readout=readout, shifter=shifter, modulator=modulator
-        )
+        model = GammaEncoder(core=core, readout=readout, shifter=shifter, modulator=modulator)
 
         return model
+
+
+class Stacked2dPointPooled_Gaussian(Stacked2dCoreReadoutModel):
+    def __init__(self):
+        super().__init__()
+        self.readout_type = "MultipleGeneralizedPointPooled2d"
+
+    def build_model(self, dataloaders, seed, **kwargs):
+        inferred_params_n = 2
+        core, readout, shifter, modulator = self.build_base_model(
+            dataloaders, seed, inferred_params_n=inferred_params_n, **kwargs
+        )
+
+        model = GaussianEncoder(core=core, readout=readout, shifter=shifter, modulator=modulator)
+
+        return model
+
 
 class Stacked2dFullGaussian2d_Poisson(Stacked2dCoreReadoutModel):
     def __init__(self):
