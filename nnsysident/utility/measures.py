@@ -6,8 +6,7 @@ import numpy as np
 import torch
 
 from neuralpredictors.measures import corr
-from neuralpredictors.measures import zero_inflated_losses as losses
-from neuralpredictors.measures.modules import PoissonLoss
+import neuralpredictors.measures as losses
 from neuralpredictors.training import device_state, eval_state
 
 
@@ -165,12 +164,12 @@ def get_loss(
     avg=False,
     per_neuron=True,
 ):
-    loss_vals = {}
+    loss_config = dict(avg=avg, per_neuron=per_neuron)
     if loss_function == "PoissonLoss":
-        loss_fn = PoissonLoss(avg=avg, per_neuron=per_neuron)
-    else:
-        loss_fn = getattr(losses, loss_function)(avg=avg, per_neuron=per_neuron)
+        loss_config.update({"full_loss": True})
+    loss_fn = getattr(losses, loss_function)(**loss_config)
 
+    loss_vals = {}
     with eval_state(model) if not isinstance(model, types.FunctionType) else contextlib.nullcontext():
         for k, v in dataloaders.items():
             loss = []
