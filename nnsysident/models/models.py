@@ -278,13 +278,21 @@ class Stacked2dPointPooled_Gamma(Stacked2dCoreReadoutModel):
         super().__init__()
         self.readout_type = "MultipleGeneralizedPointPooled2d"
 
-    def build_model(self, dataloaders, seed, eps=1.e-6, **kwargs):
+    def build_model(self, dataloaders, seed, eps=1.0e-6, min_rate=None, max_concentration=None, **kwargs):
         inferred_params_n = 2
         core, readout, shifter, modulator = self.build_base_model(
             dataloaders, seed, inferred_params_n=inferred_params_n, **kwargs
         )
 
-        model = GammaEncoder(core=core, readout=readout, shifter=shifter, modulator=modulator, eps=eps)
+        model = GammaEncoder(
+            core=core,
+            readout=readout,
+            shifter=shifter,
+            modulator=modulator,
+            eps=eps,
+            min_rate=min_rate,
+            max_concentration=max_concentration,
+        )
 
         return model
 
@@ -294,7 +302,7 @@ class Stacked2dPointPooled_Gaussian(Stacked2dCoreReadoutModel):
         super().__init__()
         self.readout_type = "MultipleGeneralizedPointPooled2d"
 
-    def build_model(self, dataloaders, seed, eps=1.e-6, **kwargs):
+    def build_model(self, dataloaders, seed, eps=1.0e-6, **kwargs):
         inferred_params_n = 2
         core, readout, shifter, modulator = self.build_base_model(
             dataloaders, seed, inferred_params_n=inferred_params_n, **kwargs
