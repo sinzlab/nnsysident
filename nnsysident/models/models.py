@@ -50,12 +50,13 @@ class MultipleGeneralizedPointPooled2d(MultiReadoutBase):
 
 class Stacked2dCoreReadoutModel:
     def __init__(self):
-        self.readout_type = None
+        pass
 
     def build_base_model(
         self,
         dataloaders,
         seed,
+        readout_type,
         data_info=None,
         transfer_state_dict=None,
         # core args
@@ -162,7 +163,7 @@ class Stacked2dCoreReadoutModel:
         )
         in_shape_dict = {k: get_module_output(core, in_shape)[1:] for k, in_shape in in_shapes_dict.items()}
 
-        if self.readout_type == "MultipleGeneralizedFullGaussian2d":
+        if readout_type == "MultipleGeneralizedFullGaussian2d":
             source_grids = None
             grid_mean_predictor_type = None
             if grid_mean_predictor is not None:
@@ -227,7 +228,7 @@ class Stacked2dCoreReadoutModel:
                 inferred_params_n=inferred_params_n,
             )
 
-        elif self.readout_type == "MultipleGeneralizedPointPooled2d":
+        elif readout_type == "MultipleGeneralizedPointPooled2d":
             readout = MultipleGeneralizedPointPooled2d(
                 in_shape_dict=in_shape_dict,
                 n_neurons_dict=n_neurons_dict,
@@ -255,15 +256,14 @@ class Stacked2dCoreReadoutModel:
         return core, readout, shifter, modulator
 
 
-class Stacked2dPointPooled_Poisson(Stacked2dCoreReadoutModel):
+class Stacked2d_Poisson(Stacked2dCoreReadoutModel):
     def __init__(self):
         super().__init__()
-        self.readout_type = "MultipleGeneralizedPointPooled2d"
 
-    def build_model(self, dataloaders, seed, elu_offset=0, **kwargs):
+    def build_model(self, dataloaders, seed, readout_type, elu_offset=0, **kwargs):
         inferred_params_n = 1
         core, readout, shifter, modulator = self.build_base_model(
-            dataloaders, seed, inferred_params_n=inferred_params_n, **kwargs
+            dataloaders, seed, readout_type, inferred_params_n=inferred_params_n, **kwargs
         )
 
         model = FiringRateEncoder(
@@ -273,15 +273,14 @@ class Stacked2dPointPooled_Poisson(Stacked2dCoreReadoutModel):
         return model
 
 
-class Stacked2dPointPooled_Gamma(Stacked2dCoreReadoutModel):
+class Stacked2d_Gamma(Stacked2dCoreReadoutModel):
     def __init__(self):
         super().__init__()
-        self.readout_type = "MultipleGeneralizedPointPooled2d"
 
-    def build_model(self, dataloaders, seed, eps=1.0e-6, min_rate=None, max_concentration=None, **kwargs):
+    def build_model(self, dataloaders, seed, readout_type, eps=1.0e-6, min_rate=None, max_concentration=None, **kwargs):
         inferred_params_n = 2
         core, readout, shifter, modulator = self.build_base_model(
-            dataloaders, seed, inferred_params_n=inferred_params_n, **kwargs
+            dataloaders, seed, readout_type, inferred_params_n=inferred_params_n, **kwargs
         )
 
         model = GammaEncoder(
@@ -297,15 +296,16 @@ class Stacked2dPointPooled_Gamma(Stacked2dCoreReadoutModel):
         return model
 
 
-class Stacked2dPointPooled_Gaussian(Stacked2dCoreReadoutModel):
-    def __init__(self):
+class Stacked2d_Gaussian(Stacked2dCoreReadoutModel):
+    def __init__(
+        self,
+    ):
         super().__init__()
-        self.readout_type = "MultipleGeneralizedPointPooled2d"
 
-    def build_model(self, dataloaders, seed, eps=1.0e-6, **kwargs):
+    def build_model(self, dataloaders, seed, readout_type, eps=1.0e-6, **kwargs):
         inferred_params_n = 2
         core, readout, shifter, modulator = self.build_base_model(
-            dataloaders, seed, inferred_params_n=inferred_params_n, **kwargs
+            dataloaders, seed, readout_type, inferred_params_n=inferred_params_n, **kwargs
         )
 
         model = GaussianEncoder(core=core, readout=readout, shifter=shifter, modulator=modulator, eps=eps)
@@ -313,33 +313,15 @@ class Stacked2dPointPooled_Gaussian(Stacked2dCoreReadoutModel):
         return model
 
 
-class Stacked2dFullGaussian2d_Poisson(Stacked2dCoreReadoutModel):
+class Stacked2d_ZIG(Stacked2dCoreReadoutModel):
     def __init__(self):
         super().__init__()
-        self.readout_type = "MultipleGeneralizedFullGaussian2d"
-
-    def build_model(self, dataloaders, seed, elu_offset=0, **kwargs):
-        inferred_params_n = 1
-        core, readout, shifter, modulator = self.build_base_model(
-            dataloaders, seed, inferred_params_n=inferred_params_n, **kwargs
-        )
-
-        model = FiringRateEncoder(
-            core=core, readout=readout, shifter=shifter, modulator=modulator, elu_offset=elu_offset
-        )
-
-        return model
-
-
-class Stacked2dFullGaussian2d_ZIG(Stacked2dCoreReadoutModel):
-    def __init__(self):
-        super().__init__()
-        self.readout_type = "MultipleGeneralizedFullGaussian2d"
 
     def build_model(
         self,
         dataloaders,
         seed,
+        readout_type,
         zero_thresholds=None,
         init_ks=None,
         theta_image_dependent=True,
@@ -361,7 +343,7 @@ class Stacked2dFullGaussian2d_ZIG(Stacked2dCoreReadoutModel):
             for k, v in dataloaders["train"].items():
                 init_ks[k] = v.dataset.neurons.normalized_ks
         core, readout, shifter, modulator = self.build_base_model(
-            dataloaders, seed, inferred_params_n=inferred_params_n, **kwargs
+            dataloaders, seed, readout_type, inferred_params_n=inferred_params_n, **kwargs
         )
 
         model = ZIGEncoder(
@@ -380,15 +362,15 @@ class Stacked2dFullGaussian2d_ZIG(Stacked2dCoreReadoutModel):
         return model
 
 
-class Stacked2dFullGaussian2d_ZIL(Stacked2dCoreReadoutModel):
+class Stacked2d_ZIL(Stacked2dCoreReadoutModel):
     def __init__(self):
         super().__init__()
-        self.readout_type = "MultipleGeneralizedFullGaussian2d"
 
     def build_model(
         self,
         dataloaders,
         seed,
+        readout_type,
         zero_thresholds=None,
         mu_image_dependent=True,
         sigma2_image_dependent=True,
@@ -405,7 +387,7 @@ class Stacked2dFullGaussian2d_ZIL(Stacked2dCoreReadoutModel):
                 zero_thresholds[k] = v.dataset.neurons.normalized_zero_thresholds
 
         core, readout, shifter, modulator = self.build_base_model(
-            dataloaders, seed, inferred_params_n=inferred_params_n, **kwargs
+            dataloaders, seed, readout_type, inferred_params_n=inferred_params_n, **kwargs
         )
 
         model = ZILEncoder(
