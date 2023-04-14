@@ -277,7 +277,18 @@ class Stacked2d_Gamma(Stacked2dCoreReadoutModel):
     def __init__(self):
         super().__init__()
 
-    def build_model(self, dataloaders, seed, readout_type, eps=1.0e-6, min_rate=None, max_concentration=None, **kwargs):
+    def build_model(
+        self,
+        dataloaders,
+        seed,
+        readout_type,
+        eps=1.0e-6,
+        min_rate=None,
+        max_concentration=None,
+        concentration_image_dependent=True,
+        rate_image_dependent=True,
+        **kwargs,
+    ):
         inferred_params_n = 2
         core, readout, shifter, modulator = self.build_base_model(
             dataloaders, seed, readout_type, inferred_params_n=inferred_params_n, **kwargs
@@ -291,6 +302,8 @@ class Stacked2d_Gamma(Stacked2dCoreReadoutModel):
             eps=eps,
             min_rate=min_rate,
             max_concentration=max_concentration,
+            concentration_image_dependent=concentration_image_dependent,
+            rate_image_dependent=rate_image_dependent,
         )
         model.loss_fn = "GammaLoss"
         return model
