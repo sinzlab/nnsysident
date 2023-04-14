@@ -269,7 +269,7 @@ class Stacked2d_Poisson(Stacked2dCoreReadoutModel):
         model = FiringRateEncoder(
             core=core, readout=readout, shifter=shifter, modulator=modulator, elu_offset=elu_offset
         )
-
+        model.loss_fn = "PoissonLoss"
         return model
 
 
@@ -292,14 +292,12 @@ class Stacked2d_Gamma(Stacked2dCoreReadoutModel):
             min_rate=min_rate,
             max_concentration=max_concentration,
         )
-
+        model.loss_fn = "GammaLoss"
         return model
 
 
 class Stacked2d_Gaussian(Stacked2dCoreReadoutModel):
-    def __init__(
-        self,
-    ):
+    def __init__(self):
         super().__init__()
 
     def build_model(self, dataloaders, seed, readout_type, eps=1.0e-6, **kwargs):
@@ -309,7 +307,7 @@ class Stacked2d_Gaussian(Stacked2dCoreReadoutModel):
         )
 
         model = GaussianEncoder(core=core, readout=readout, shifter=shifter, modulator=modulator, eps=eps)
-
+        model.loss_fn = "GaussianLoss"
         return model
 
 
@@ -359,6 +357,7 @@ class Stacked2d_ZIG(Stacked2dCoreReadoutModel):
             modulator=modulator,
             offset=offset,
         )
+        model.loss_fn = "ZIGLoss"
         return model
 
 
@@ -402,4 +401,5 @@ class Stacked2d_ZIL(Stacked2dCoreReadoutModel):
             modulator=modulator,
             offset=offset,
         )
+        model.loss_fn = "ZILLoss"
         return model
