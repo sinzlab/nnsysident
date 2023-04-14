@@ -82,11 +82,9 @@ def model_predictions(model, dataloader, data_key, device="cpu"):
                 behavior = b.behavior.to(device) if hasattr(b, "behavior") else None
                 images = b.images.to(device) if "images" in b._fields else b.inputs.to(device)
                 responses = b.responses if "responses" in b._fields else b.targets.to(device)
-                outputs.append(
-                    model.predict_mean(images, data_key=data_key, pupil_center=pupil_center, behavior=behavior)
-                    .cpu()
-                    .data.numpy()
-                )
+                output = model.predict_mean(images, data_key=data_key, pupil_center=pupil_center, behavior=behavior).cpu().data.numpy()
+                output = np.repeat(output, responses.shape[0], axis=0) if output.shape[0] == 1 else output
+                outputs.append(output)
                 targets.append(
                     model.transform(responses, data_key=data_key)[0].cpu().data.numpy()
                     if hasattr(model, "transform")
