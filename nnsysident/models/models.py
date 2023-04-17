@@ -1,5 +1,6 @@
 import copy
 
+import torch
 import numpy as np
 
 from neuralpredictors.layers.cores import Stacked2dCore
@@ -306,7 +307,27 @@ class Stacked2d_Gamma(Stacked2dCoreReadoutModel):
             rate_image_dependent=rate_image_dependent,
         )
         model.loss_fn = "GammaLoss"
+
+        # Re-initialize the readout bias with better values (it was initialized with the mean activity by default)
+        readout_bias_init_dict = self.get_readout_bias_init_values(dataloaders)
+        for key, readout in model.readout.items():
+            readout.bias.data = readout_bias_init_dict[key]
+
         return model
+
+    def get_readout_bias_init_values(self, dataloaders):
+        readout_bias_init_dict = {}
+        for key, loader in dataloaders["train"].items():
+            responses = []
+            for datapoint in loader:
+                responses.append(datapoint.targets if "targets" in datapoint._fields else datapoint.responses)
+            responses = torch.vstack(responses).cpu().data
+
+            concentration = responses.mean(0) ** 2 / responses.var(0)
+            rate = responses.mean(0) / responses.var(0)
+            readout_bias_init_dict[key] = torch.stack([concentration, rate])
+
+        return readout_bias_init_dict
 
 
 class Stacked2d_Gaussian(Stacked2dCoreReadoutModel):
