@@ -12,7 +12,7 @@ from .experiments import TrainedModel, TrainedModelTransfer
 
 # create the context object
 try:
-    main = my_nnfabrik(os.environ["DJ_SCHEMA_NAME"])
+    main = my_nnfabrik(os.environ["DJ_SCHEMA_NAME"], use_common_fabrikant=False)
 except:
     raise ValueError(
         " ".join(

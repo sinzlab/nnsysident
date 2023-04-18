@@ -115,7 +115,7 @@ def standard_trainer(
         dataloaders=dataloaders["validation"],
         device=device,
         per_neuron=False,
-        avg=True,
+        avg=avg_loss,
     )
     if stop_function == "get_loss":
         stop_closure = partial(stop_closure, loss_function=loss_function)

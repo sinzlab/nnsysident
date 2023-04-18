@@ -50,9 +50,7 @@ class MultipleGeneralizedPointPooled2d(MultiReadoutBase):
 
 
 class Stacked2dCoreReadoutModel:
-    def __init__(self):
-        pass
-
+    @classmethod
     def build_base_model(
         self,
         dataloaders,
@@ -258,12 +256,10 @@ class Stacked2dCoreReadoutModel:
 
 
 class Stacked2d_Poisson(Stacked2dCoreReadoutModel):
-    def __init__(self):
-        super().__init__()
-
-    def build_model(self, dataloaders, seed, readout_type, elu_offset=0, **kwargs):
+    @classmethod
+    def build_model(cls, dataloaders, seed, readout_type=None, elu_offset=0, **kwargs):
         inferred_params_n = 1
-        core, readout, shifter, modulator = self.build_base_model(
+        core, readout, shifter, modulator = cls.build_base_model(
             dataloaders, seed, readout_type, inferred_params_n=inferred_params_n, **kwargs
         )
 
@@ -275,14 +271,12 @@ class Stacked2d_Poisson(Stacked2dCoreReadoutModel):
 
 
 class Stacked2d_Gamma(Stacked2dCoreReadoutModel):
-    def __init__(self):
-        super().__init__()
-
+    @classmethod
     def build_model(
-        self,
+        cls,
         dataloaders,
         seed,
-        readout_type,
+        readout_type=None,
         eps=1.0e-6,
         min_rate=None,
         max_concentration=None,
@@ -291,7 +285,7 @@ class Stacked2d_Gamma(Stacked2dCoreReadoutModel):
         **kwargs,
     ):
         inferred_params_n = 2
-        core, readout, shifter, modulator = self.build_base_model(
+        core, readout, shifter, modulator = cls.build_base_model(
             dataloaders, seed, readout_type, inferred_params_n=inferred_params_n, **kwargs
         )
 
@@ -309,13 +303,14 @@ class Stacked2d_Gamma(Stacked2dCoreReadoutModel):
         model.loss_fn = "GammaLoss"
 
         # Re-initialize the readout bias with better values (it was initialized with the mean activity by default)
-        readout_bias_init_dict = self.get_readout_bias_init_values(dataloaders)
+        readout_bias_init_dict = cls.get_readout_bias_init_values(dataloaders)
         for key, readout in model.readout.items():
             readout.bias.data = readout_bias_init_dict[key]
 
         return model
 
-    def get_readout_bias_init_values(self, dataloaders):
+    @classmethod
+    def get_readout_bias_init_values(cls, dataloaders):
         readout_bias_init_dict = {}
         for key, loader in dataloaders["train"].items():
             responses = []
@@ -331,12 +326,10 @@ class Stacked2d_Gamma(Stacked2dCoreReadoutModel):
 
 
 class Stacked2d_Gaussian(Stacked2dCoreReadoutModel):
-    def __init__(self):
-        super().__init__()
-
-    def build_model(self, dataloaders, seed, readout_type, eps=1.0e-6, **kwargs):
+    @classmethod
+    def build_model(cls, dataloaders, seed, readout_type=None, eps=1.0e-6, **kwargs):
         inferred_params_n = 2
-        core, readout, shifter, modulator = self.build_base_model(
+        core, readout, shifter, modulator = cls.build_base_model(
             dataloaders, seed, readout_type, inferred_params_n=inferred_params_n, **kwargs
         )
 
@@ -346,14 +339,12 @@ class Stacked2d_Gaussian(Stacked2dCoreReadoutModel):
 
 
 class Stacked2d_ZIG(Stacked2dCoreReadoutModel):
-    def __init__(self):
-        super().__init__()
-
+    @classmethod
     def build_model(
-        self,
+        cls,
         dataloaders,
         seed,
-        readout_type,
+        readout_type=None,
         zero_thresholds=None,
         init_ks=None,
         theta_image_dependent=True,
@@ -374,7 +365,7 @@ class Stacked2d_ZIG(Stacked2dCoreReadoutModel):
             init_ks = {}
             for k, v in dataloaders["train"].items():
                 init_ks[k] = v.dataset.neurons.normalized_ks
-        core, readout, shifter, modulator = self.build_base_model(
+        core, readout, shifter, modulator = cls.build_base_model(
             dataloaders, seed, readout_type, inferred_params_n=inferred_params_n, **kwargs
         )
 
@@ -396,14 +387,12 @@ class Stacked2d_ZIG(Stacked2dCoreReadoutModel):
 
 
 class Stacked2d_ZIL(Stacked2dCoreReadoutModel):
-    def __init__(self):
-        super().__init__()
-
+    @classmethod
     def build_model(
-        self,
+        cls,
         dataloaders,
         seed,
-        readout_type,
+        readout_type=None,
         zero_thresholds=None,
         mu_image_dependent=True,
         sigma2_image_dependent=True,
@@ -419,7 +408,7 @@ class Stacked2d_ZIL(Stacked2dCoreReadoutModel):
             for k, v in dataloaders["train"].items():
                 zero_thresholds[k] = v.dataset.neurons.normalized_zero_thresholds
 
-        core, readout, shifter, modulator = self.build_base_model(
+        core, readout, shifter, modulator = cls.build_base_model(
             dataloaders, seed, readout_type, inferred_params_n=inferred_params_n, **kwargs
         )
 
@@ -437,3 +426,10 @@ class Stacked2d_ZIL(Stacked2dCoreReadoutModel):
         )
         model.loss_fn = "ZILLoss"
         return model
+
+
+stacked2d_poisson = Stacked2d_Poisson.build_model
+stacked2d_gamma = Stacked2d_Gamma.build_model
+stacked2d_gaussian = Stacked2d_Gaussian.build_model
+stacked2d_zig = Stacked2d_ZIG.build_model
+stacked2d_zil = Stacked2d_ZIL.build_model

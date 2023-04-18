@@ -9,7 +9,7 @@ from nnfabrik.templates.trained_model import TrainedModelBase
 
 if not "stores" in dj.config:
     dj.config["stores"] = {}
-dj.config["stores"]["minio_models"] = {
+dj.config["stores"]["minio"] = {
     "protocol": "s3",
     "endpoint": os.environ["MINIO_ENDPOINT"],
     "bucket": "kklurzmodels",
@@ -21,7 +21,7 @@ dj.config["stores"]["minio_models"] = {
 
 # create the context object
 try:
-    main = my_nnfabrik(os.environ["DJ_SCHEMA_NAME"])
+    main = my_nnfabrik(os.environ["DJ_SCHEMA_NAME"], use_common_fabrikant=False)
 except:
     raise ValueError(
         " ".join(
@@ -248,18 +248,3 @@ class Experiments(dj.Manual):
 
         restrictions = [{**{"experiment_name": experiment_name}, **res} for res in restrictions]
         self.Restrictions.insert(restrictions, skip_duplicates=skip_duplicates)
-
-
-@schema
-class ExperimentsTransfer(Experiments):
-    class Restrictions(dj.Part):
-        definition = """
-        # This table contains the corresponding hashes to filter out models which form the respective experiment
-        -> master
-        -> Dataset
-        -> Trainer
-        -> Model
-        -> Transfer
-        ---
-        experiment_restriction_ts=CURRENT_TIMESTAMP:   timestamp      # UTZ timestamp at time of insertion
-        """
