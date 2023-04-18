@@ -24,6 +24,8 @@ RUN pip3 --no-cache-dir install \
     wandb
 
 RUN pip install --upgrade scikit-image
+RUN pip install --upgrade numpy==1.23.5
+RUN pip install --upgrade datajoint==0.13.1
 
 # install the current project
 WORKDIR /project
