@@ -19,17 +19,20 @@ services:
 
   gpu_job:
     build:
-      dockerfile: ./neuralmetrics/Dockerfile
+      dockerfile: ./nnsysident/Dockerfile
       context: ../
     image: nnsysident
     volumes:
-      - .:/src/nnsysident
+      - .:/project
+      - ../data_port:/src/data_port
       - ../neuralmetrics:/src/neuralmetrics
       - ../mei:/src/mei
-      - .:/notebooks
-      - /var/sinz-shared/mouse/toliaslab/static:/notebooks/data
+      - /var/sinz-shared/mouse/toliaslab/static:/notebooks/data/
+      - /var/sinz-shared/mouse/toliaslab/static:/project/notebooks/data/
+      - /var/sinz-shared/monkey/toliaslab:/notebooks/data/monkey/
+      - /var/sinz-shared/monkey/toliaslab:/project/notebooks/data/monkey/
     env_file: .env
     runtime: nvidia
     entrypoint: /usr/local/bin/python3
-    command: run.py
+    command: notebooks/run.py
 
