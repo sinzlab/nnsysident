@@ -16,7 +16,7 @@ def standard_trainer(
         model,
         dataloaders,
         seed,
-        loss_function="PoissonLoss",
+        loss_function=None,
         avg_loss=False,
         scale_loss=True,
         stop_function="get_correlations",
@@ -71,7 +71,8 @@ def standard_trainer(
         **kwargs:
     Returns:
     """
-
+    if loss_function is None:
+        loss_function = model.loss_fn
     if stop_function == "get_loss" and maximize:
         warn("A loss function is the stopping criterion but 'maximize' is set to True for the early stopping")
 

@@ -1,10 +1,11 @@
 from __future__ import annotations
+import os
 
 from typing import Any, Dict
 
 import datajoint as dj
 import torch
-from nnfabrik.main import Dataset
+from nnfabrik.main import Dataset, my_nnfabrik
 from torch.nn import Module
 from torch.utils.data import DataLoader
 
@@ -12,14 +13,14 @@ from mei import mixins
 from mei.main import MEISeed
 from mei.modules import ConstrainedOutputModel
 
-from .experiments import TrainedModel, TrainedModelTransfer
+from .experiments import TrainedModel
 
 Key = Dict[str, Any]
 Dataloaders = Dict[str, DataLoader]
 
 # create the context object
 try:
-    main = my_nnfabrik(os.environ["DJ_SCHEMA_NAME"])
+    main = main = my_nnfabrik(os.environ["DJ_SCHEMA_NAME"], use_common_fabrikant=False)
 except:
     raise ValueError(
         " ".join(
@@ -101,17 +102,6 @@ class TrainedEnsembleModel(mixins.TrainedEnsembleModelTemplateMixin, dj.Manual):
 
 
 @schema
-class TrainedEnsembleModelTransfer(mixins.TrainedEnsembleModelTemplateMixin, dj.Manual):
-    dataset_table = Dataset
-    trained_model_table = TrainedModelTransfer
-
-    class Member(mixins.TrainedEnsembleModelTemplateMixin.Member, dj.Part):
-        """Member table template."""
-
-        pass
-
-
-@schema
 class MEI(mixins.MEITemplateMixin, dj.Computed):
     """MEI table template.
     To create a functional "MEI" table, create a new class that inherits from this template and decorate it with your
@@ -128,70 +118,12 @@ class MEI(mixins.MEITemplateMixin, dj.Computed):
 
 
 @schema
-class MEITransfer(mixins.MEITemplateMixin, dj.Computed):
-    """MEI table template.
-    To create a functional "MEI" table, create a new class that inherits from this template and decorate it with your
-    preferred Datajoint schema. Next assign your trained model (or trained ensemble model) and your selector table to
-    the class variables called "trained_model_table" and "selector_table". By default, the created table will point to
-    the "MEIMethod" table in the Datajoint schema called "nnfabrik.main". This behavior can be changed by overwriting
-    the class attribute called "method_table".
-    """
-
-    trained_model_table = TrainedEnsembleModelTransfer
-    selector_table = MEISelector
-    method_table = MEIMethod
-    seed_table = MEISeed
-
-
-@schema
 class MEIScore(dj.Computed):
     """
     A template for a MEI scoring table.
     """
 
     mei_table = MEI
-    measure_attribute = "score"
-    function_kwargs = {}
-    external_download_path = None
-
-    # table level comment
-    table_comment = "A template table for storing results/scores of a MEI"
-
-    @property
-    def definition(self):
-        definition = """
-                    # {table_comment}
-                    -> self.mei_table
-                    ---
-                    {measure_attribute}:      float     # A template for a computed score of a trained model
-                    {measure_attribute}_ts=CURRENT_TIMESTAMP: timestamp    # UTZ timestamp at time of insertion
-                    """.format(
-            table_comment=self.table_comment, measure_attribute=self.measure_attribute
-        )
-        return definition
-
-    @staticmethod
-    def measure_function(mei, **kwargs):
-        raise NotImplementedError("Scoring Function has to be implemented")
-
-    def get_mei(self, key):
-        mei = torch.load((self.mei_table & key).fetch1("mei", download_path=self.external_download_path))
-        return mei
-
-    def make(self, key):
-        mei = self.get_mei(key=key)
-        score = self.measure_function(mei, **self.function_kwargs)
-        key[self.measure_attribute] = score
-        self.insert1(key, ignore_extra_fields=True)
-
-
-@schema
-class MEIScoreTransfer(dj.Computed):
-    """
-    A template for a MEI scoring table.
-    """
-
-    mei_table = MEITransfer
     measure_attribute = "score"
     function_kwargs = {}
     external_download_path = None
