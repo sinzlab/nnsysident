@@ -161,7 +161,10 @@ def get_loss(
     as_dict=False,
     avg=False,
     per_neuron=True,
+    normalize_over_trials_and_neurons=False,
 ):
+    if normalize_over_trials_and_neurons:
+        assert not (avg or per_neuron), "avg and per_neuron must be False if normalize_over_trials_and_neurons is True."
     loss_config = dict(avg=avg, per_neuron=per_neuron)
     if loss_function == "PoissonLoss":
         loss_config.update({"full_loss": True})
@@ -171,11 +174,13 @@ def get_loss(
     with eval_state(model) if not isinstance(model, types.FunctionType) else contextlib.nullcontext():
         for k, v in dataloaders.items():
             loss = []
+            n_trials = 0
             for b in v:
                 images = b.images.to(device) if "images" in b._fields else b.inputs.to(device)
                 responses = b.responses.to(device) if "responses" in b._fields else b.targets.to(device)
                 pupil_center = b.pupil_center.to(device) if hasattr(b, "pupil_center") else None
                 behavior = b.behavior.to(device) if hasattr(b, "behavior") else None
+                n_trials += images.shape[0]
                 if hasattr(model, "transform"):
                     loss.append(
                         loss_fn(
@@ -196,7 +201,9 @@ def get_loss(
                     )
 
             loss = np.vstack(loss)
-            loss_vals[k] = np.mean(loss, axis=0) if avg else np.sum(loss, axis=0)
+            loss = np.mean(loss, axis=0) if avg else np.sum(loss, axis=0)
+            loss = loss / (n_trials * responses.shape[-1]) if normalize_over_trials_and_neurons else loss
+            loss_vals[k] = loss
     if as_dict:
         return loss_vals
     else:

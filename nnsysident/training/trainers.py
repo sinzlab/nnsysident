@@ -230,11 +230,17 @@ def standard_trainer(
             loss_function,
             device=device,
             per_neuron=False,
+            normalize_over_trials_and_neurons=True,
         )
-
+    if stop_function == "get_correlations":
+        score_measure = "correlation"
+    elif stop_function == "get_loss":
+        score_measure = "loss"
+    else:
+        raise NotImplementedError("Implement a score measure for the stop function '{}'".format(stop_function))
     score = (
-        output["best_model_stats"]["correlation"]["test"]
+        output["best_model_stats"][score_measure]["test"]
         if return_test_score
-        else output["best_model_stats"]["correlation"]["validation"]
+        else output["best_model_stats"][score_measure]["validation"]
     )
     return score, output, model.state_dict()
