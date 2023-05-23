@@ -13,6 +13,7 @@ ADD ./data_port /src/data_port
 RUN pip install -e /src/data_port
 
 RUN pip install git+https://github.com/kklurz/neuralpredictors.git@main
+RUN pip install git+https://github.com/sinzlab/nnvision.git@inception_loops
 
 RUN pip install nnfabrik==0.1.0
 RUN pip install figrid
