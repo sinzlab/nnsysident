@@ -1,6 +1,6 @@
 from __future__ import annotations
-import os
 
+import os
 from typing import Any, Dict
 
 import datajoint as dj
@@ -9,8 +9,25 @@ from nnfabrik.main import Dataset, my_nnfabrik
 from torch.nn import Module
 from torch.utils.data import DataLoader
 
-from mei import mixins
-from mei.main import MEISeed
+if not "stores" in dj.config:
+    dj.config["stores"] = {}
+dj.config["stores"]["minio"] = {
+    "protocol": "s3",
+    "endpoint": os.environ["MINIO_ENDPOINT"],
+    "bucket": "kklurzmodels",
+    "location": "dj-store",
+    "access_key": os.environ["MINIO_ACCESS_KEY"],
+    "secret_key": os.environ["MINIO_SECRET_KEY"],
+    "secure": True,
+}
+
+from mei.main import (
+    CSRFV1ObjectiveTemplate,
+    MEIMethod,
+    MEISeed,
+    MEITemplate,
+    TrainedEnsembleModelTemplate,
+)
 from mei.modules import ConstrainedOutputModel
 
 from .experiments import TrainedModel
@@ -20,7 +37,7 @@ Dataloaders = Dict[str, DataLoader]
 
 # create the context object
 try:
-    main = main = my_nnfabrik(os.environ["DJ_SCHEMA_NAME"], use_common_fabrikant=False)
+    main = my_nnfabrik(os.environ["DJ_SCHEMA_NAME"], use_common_fabrikant=False)
 except:
     raise ValueError(
         " ".join(
@@ -72,49 +89,15 @@ class MEISelector(MouseSelectorTemplate):
 
 
 @schema
-class MEIMethod(mixins.MEIMethodMixin, dj.Lookup):
-    seed_table = MEISeed
-    optional_names = optional_names = ("transform", "regularization", "precondition", "postprocessing")
-
-    def generate_mei(self, dataloaders: Dataloaders, model: Module, key: Key, seed: int) -> Dict[str, Any]:
-        method_fn, method_config = (self & key).fetch1("method_fn", "method_config")
-        self.insert_key_in_ops(method_config=method_config, key=key)
-        method_fn = self.import_func(method_fn)
-        mei, score, output = method_fn(dataloaders, model, method_config, seed)
-        return dict(key, mei=mei, score=score, output=output)
-
-    def insert_key_in_ops(self, method_config, key):
-        for k, v in method_config.items():
-            if k in self.optional_names:
-                if "key" in v["kwargs"]:
-                    v["kwargs"]["key"] = key
-
-
-@schema
-class TrainedEnsembleModel(mixins.TrainedEnsembleModelTemplateMixin, dj.Manual):
+class TrainedEnsembleModel(TrainedEnsembleModelTemplate):
     dataset_table = Dataset
     trained_model_table = TrainedModel
 
-    class Member(mixins.TrainedEnsembleModelTemplateMixin.Member, dj.Part):
-        """Member table template."""
-
-        pass
-
 
 @schema
-class MEI(mixins.MEITemplateMixin, dj.Computed):
-    """MEI table template.
-    To create a functional "MEI" table, create a new class that inherits from this template and decorate it with your
-    preferred Datajoint schema. Next assign your trained model (or trained ensemble model) and your selector table to
-    the class variables called "trained_model_table" and "selector_table". By default, the created table will point to
-    the "MEIMethod" table in the Datajoint schema called "nnfabrik.main". This behavior can be changed by overwriting
-    the class attribute called "method_table".
-    """
-
+class MEI(MEITemplate):
     trained_model_table = TrainedEnsembleModel
     selector_table = MEISelector
-    method_table = MEIMethod
-    seed_table = MEISeed
 
 
 @schema
