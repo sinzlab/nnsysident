@@ -3,7 +3,8 @@ import os
 from nnfabrik.main import *
 from nnfabrik.templates.utility import find_object
 
-from .experiments import Seed, TrainedModel
+from .experiments import Seed
+from nnfabrik.templates.trained_model import TrainedModelBase
 
 if not "stores" in dj.config:
     dj.config["stores"] = {}
@@ -50,7 +51,7 @@ class ModelBayesian(Model):
 
 
 @schema
-class TrainedModelBayesian(TrainedModel):
+class TrainedModelBayesian(TrainedModelBase):
     storage = "minio_models_bayesian"
     table_comment = "Trained models for bayesian searches"
 
@@ -65,3 +66,11 @@ class TrainedModelBayesian(TrainedModel):
     @property
     def seed_table(self):
         return SeedBayesian
+
+    @property
+    def trainer_table(self):
+        return Trainer
+
+    @property
+    def user_table(self):
+        return Fabrikant
