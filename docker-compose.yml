@@ -34,5 +34,5 @@ services:
     env_file: .env
     runtime: nvidia
     entrypoint: /usr/local/bin/python3
-    command: notebooks/run.py
+    command: ./run.py
 

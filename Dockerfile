@@ -26,7 +26,7 @@ RUN pip3 --no-cache-dir install \
 
 RUN pip install --upgrade scikit-image
 RUN pip install --upgrade numpy==1.23.5
-RUN pip install --upgrade datajoint==0.13.1
+RUN pip install --upgrade datajoint==0.12.9
 
 # install the current project
 WORKDIR /project
