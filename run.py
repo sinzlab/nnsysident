@@ -3,6 +3,7 @@
 import os
 import datajoint as dj
 import pandas as pd
+import numpy as np
 
 dj.config['database.host'] = os.environ['DJ_HOST']
 dj.config['database.user'] = os.environ['DJ_USERNAME']
@@ -15,17 +16,47 @@ dj.config["nnfabrik.schema_name"] = os.environ["DJ_SCHEMA_NAME"]
 
 from nnfabrik.utility.hypersearch import Bayesian
 from nnfabrik.main import *
+from mei.main import MEISeed, MEIMethod
+from nnsysident.tables.mei import MEISelector, TrainedEnsembleModel, MEI
 from nnsysident.tables.experiments import *
 from nnsysident.tables.scoring import (
     OracleScore,
-    OracleScoreTransfer,
     R2erScore,
-    R2erScoreTransfer,
     FeveScore,
-    FeveScoreTransfer,
     TestCorr,
-    TestCorrTransfer,
 )
+from nnsysident.utility.data_helpers import extract_data_key
+
+
+
+# unit_ids = [8,  9, 26, 29, 33, 49, 59, 69, 70, 92]
+# ensemble_hash = (TrainedEnsembleModel() & "ensemble_comment = 'gamma models'").fetch1("ensemble_hash")
+#
+# method_hash = (MEIMethod() & "method_comment like '%MEI%'").fetch1("method_hash")
+# MEI().populate(
+#     "unit_id in {}".format(tuple(unit_ids)),
+#     "method_hash = '{}'".format(method_hash),
+#     "ensemble_hash = '{}'".format(ensemble_hash),
+#     display_progress=True,
+# )
+# method_hash = (MEIMethod() & "method_comment like '%CEI%'").fetch1("method_hash")
+# MEI().populate(
+#     "unit_id in {}".format(tuple(unit_ids)),
+#     "method_hash = '{}'".format(method_hash),
+#     "ensemble_hash = '{}'".format(ensemble_hash),
+#     display_progress=True,
+# )
+# method_hash = (MEIMethod() & "method_comment like '%VEI%'").fetch("method_hash")
+# MEI().populate(
+#     "unit_id in {}".format(tuple(unit_ids)),
+#     "method_hash in ('{}', '{}')".format(method_hash[0], method_hash[1]),
+#     "ensemble_hash = '{}'".format(ensemble_hash),
+#     display_progress=True,
+# )
+
+
+
+
 
 
 ### Experiment
@@ -51,23 +82,23 @@ from nnsysident.tables.scoring import (
 
 
 
-#######################  Bayesian Search  ###################################
-paths = ["/notebooks/data/static20457-5-9-preproc0.zip"]
-
+######################  Bayesian Search  ###################################
+paths = ["/project/notebooks/data/static20457-5-9-preproc0.zip"]
+img_data_key = extract_data_key(paths[0])
 dataset_fn = "nnsysident.datasets.mouse_loaders.static_loaders"
-dataset_config = {
-    "paths": paths,
-    "batch_size": 64,
-    "seed": 1,
-    'loader_outputs': ["images", "responses"],
-    'normalize': True,
-    'exclude': ["images"],
-}
+dataset_config = {'paths': ['/project/notebooks/data/static20457-5-9-preproc0'],
+                  'batch_size': 64,
+                  'seed': 42,
+                  'loader_outputs': ['images', 'responses'],
+                  'normalize': True,
+                  'exclude': None}
 dataset_config_auto = dict()
 print(dataset_config)
 
-model_fn = "nnsysident.models.models.stacked2d_gamma"
+model_fn = "nnsysident.models.models.stacked2d_zig"
+loc = np.exp(-10)
 model_config = {
+    'zero_thresholds': {img_data_key: loc},
     "init_sigma": 0.4,
     'init_mu_range': 0.55,
     'gamma_input': 1.0,
@@ -91,10 +122,9 @@ model_config_auto = dict(
 
 
 trainer_fn = "nnsysident.training.trainers.standard_trainer"
-trainer_config = dict(detach_core=False,
-                      stop_function="get_correlations",
-                      maximize=True,
-                      loss_function="GammaLoss")
+trainer_config = {'detach_core': False,
+                  'stop_function': 'get_loss',
+                  'maximize': False}
 trainer_config_auto = dict()
 
 autobayes = Bayesian(
@@ -119,7 +149,7 @@ Model().add_entry(
     model_fn=model_fn,
     model_config=model_config,
     model_fabrikant="kklurz",
-    model_comment="get_correlations",
+    model_comment=f"ZIG, {trainer_config['stop_function']}",
 )
 
 
