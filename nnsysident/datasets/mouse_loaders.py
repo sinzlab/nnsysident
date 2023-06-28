@@ -118,11 +118,12 @@ def static_loader(
     keys = [tier] if tier else ["train", "validation", "test"]
     shuffle = {"train": shuffle_train, "validation": False, "test": shuffle_test}
     tier_array = dat.trial_info.tiers if file_tree else dat.tiers
-    image_id_array = dat.trial_info.frame_image_id if file_tree else dat.info.frame_image_id
+
 
     for tier in keys:
         # sample images
         if image_ids is not None:
+            image_id_array = dat.trial_info.frame_image_id if file_tree else dat.info.frame_image_id
             image_ids_per_tier = list(set(image_ids) & set(image_id_array[tier_array == tier]))
             subset_idx = np.where(np.isin(image_id_array, image_ids_per_tier))[0]
 
