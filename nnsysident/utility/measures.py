@@ -161,10 +161,7 @@ def get_loss(
     as_dict=False,
     avg=False,
     per_neuron=True,
-    normalize_over_trials_and_neurons=False,
 ):
-    if normalize_over_trials_and_neurons:
-        assert not (avg or per_neuron), "avg and per_neuron must be False if normalize_over_trials_and_neurons is True."
     loss_config = dict(avg=avg, per_neuron=per_neuron)
     if loss_function == "PoissonLoss":
         loss_config.update({"full_loss": True})
@@ -202,19 +199,20 @@ def get_loss(
 
             loss = np.vstack(loss)
             loss = np.mean(loss, axis=0) if avg else np.sum(loss, axis=0)
-            loss = loss / (n_trials * responses.shape[-1]) if normalize_over_trials_and_neurons else loss
             loss_vals[k] = loss
+
     if as_dict:
         return loss_vals
     else:
+        loss_per_neuron = np.hstack([v for v in loss_vals.values()])
         if per_neuron:
-            return np.hstack([v for v in loss_vals.values()])
+            return loss_per_neuron
         else:
             return (
-                np.mean(np.hstack([v for v in loss_vals.values()]))
+                np.mean(loss_per_neuron)
                 if avg
-                else np.sum(np.hstack([v for v in loss_vals.values()]))
-            )
+                else np.sum(loss_per_neuron))
+
 
 
 def get_model_performance(model, dataloaders, loss_function, device="cpu", print_performance=True):
