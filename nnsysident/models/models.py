@@ -109,7 +109,7 @@ class Stacked2dCoreReadoutModel:
         **kwargs,
     ):
         if gamma_readout is not None:
-            feature_reg_weight = gamma_input
+            feature_reg_weight = gamma_readout
 
         if transfer_state_dict is not None:
             print(
