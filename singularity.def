@@ -16,6 +16,9 @@ From: ghcr.io/sinzlab/pytorch-singularity:v3.10-torch1.11.0-dj0.12.7-ubuntu22.04
         ipdb \
         wandb \
         lipstick \
+        figrid \
+        statsmodels \
+        ax_platform \
         nnfabrik==0.1.0 \
         git+https://github.com/kklurz/neuralpredictors@main \
         git+https://github.com/sinzlab/nnvision@inception_loops \
