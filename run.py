@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import os
+import time
 import datajoint as dj
 import pandas as pd
 import numpy as np
@@ -17,7 +18,8 @@ dj.config["nnfabrik.schema_name"] = os.environ["DJ_SCHEMA_NAME"]
 from nnfabrik.utility.hypersearch import Bayesian
 from nnfabrik.main import *
 from mei.main import MEISeed, MEIMethod
-from nnsysident.tables.mei import MEISelector, TrainedEnsembleModel, MEI
+from nnvision.tables.main import Recording
+from nnsysident.tables.mei import MEISelector, TrainedEnsembleModel, MEI, MEIMonkey
 from nnsysident.tables.experiments import *
 from nnsysident.tables.scoring import (
     OracleScore,
@@ -39,22 +41,49 @@ from nnsysident.utility.data_helpers import extract_data_key
 #                       reserve_jobs=True,)
 
 
-ensemble_hash = (TrainedEnsembleModel() & "ensemble_comment = 'gamma models, modulator, shifter'").fetch1(
-    "ensemble_hash"
-)
+########### Mouse MEI
+ensemble_hash = (TrainedEnsembleModel() &
+                 "ensemble_comment = 'gamma models, modulator, shifter'").fetch1("ensemble_hash")
 unit_ids = [8, 9, 26, 29, 33, 49, 59, 69, 70, 92]
 n_units = len(unit_ids)
 
 for mei_type in ["MEI", "CEI", "VEI+, 0.8", "VEI-, 0.8"]:
     method_hash = (MEIMethod() & f"method_comment like '%{mei_type}%'").fetch1("method_hash")
-    MEI().populate(
-        "unit_id in {}".format(tuple(unit_ids[:n_units])),
-        "method_hash = '{}'".format(method_hash),
-        "ensemble_hash = '{}'".format(ensemble_hash),
-        display_progress=True,
-        reserve_jobs=True,
-    )
+    restr = ["unit_id in {}".format(tuple(unit_ids[:n_units])),
+             "method_hash = '{}'".format(method_hash),
+             "ensemble_hash = '{}'".format(ensemble_hash),
+             ]
+    MEI().populate(*restr,
+                   display_progress=True,
+                   reserve_jobs=True,
+                   )
+    progress = MEI().progress(*restr, display=False)
+    while progress[0] != 0:
+        time.sleep(3*60)
+        progress = MEI().progress(*restr, display=False)
 
+
+
+########### Monkey MEI
+# ensemble_hash = (TrainedEnsembleModel() &
+#                  "ensemble_comment = 'Monkey V1 Gamma Model, PointPooled'").fetch1("ensemble_hash")
+# monkey_data_key = "3631807112901"
+# monkey_unit_ids = (Recording.Units() & f"data_key = '{monkey_data_key}'").fetch("unit_id")[:10]
+#
+# for mei_type in ["MEI", "CEI", "VEI+, 0.8", "VEI-, 0.8"]:
+#     method_hash = (MEIMethod() & f"method_comment like '%{mei_type}%'").fetch1("method_hash")
+#     restr = ["unit_id in {}".format(tuple(monkey_unit_ids)),
+#              f"data_key = '{monkey_data_key}'",
+#              "method_hash = '{}'".format(method_hash),
+#              "ensemble_hash = '{}'".format(ensemble_hash),]
+#     MEIMonkey().populate(*restr,
+#                          display_progress=True,
+#                          reserve_jobs=True,
+#                          )
+#     progress = MEIMonkey().progress(*restr, display=False)
+#     while progress[0] != 0:
+#         time.sleep(3*60)
+#         progress = MEIMonkey().progress(*restr, display=False)
 
 ### Experiment
 
