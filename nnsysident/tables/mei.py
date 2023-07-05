@@ -6,6 +6,7 @@ from typing import Any, Dict
 import datajoint as dj
 import torch
 from nnfabrik.main import Dataset, my_nnfabrik
+from nnvision.tables.main import Recording
 from torch.nn import Module
 from torch.utils.data import DataLoader
 
@@ -98,6 +99,12 @@ class TrainedEnsembleModel(TrainedEnsembleModelTemplate):
 class MEI(MEITemplate):
     trained_model_table = TrainedEnsembleModel
     selector_table = MEISelector
+
+
+@schema
+class MEIMonkey(MEITemplate):
+    trained_model_table = TrainedEnsembleModel
+    selector_table = Recording.Units
 
 
 @schema
