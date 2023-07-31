@@ -19,11 +19,11 @@ From: ghcr.io/sinzlab/pytorch-singularity:v3.10-torch1.11.0-dj0.12.7-ubuntu22.04
         figrid \
         statsmodels \
         ax_platform \
-        nnfabrik==0.1.0 \
         git+https://github.com/kklurz/neuralpredictors@main \
-        git+https://github.com/sinzlab/nnvision@inception_loops \
+        git+https://github.com/kklurz/nnvision@inception_loops \
         git+https://github.com/sinzlab/data_port@master \
         git+https://github.com/kklurz/mei@inception_loop \
+        git+https://github.com/sinzlab/nnfabrik@0.2.2
 
 
     # Downgrade numpy to work with new datajoint, upgrade datajoint because of bug with part tables
@@ -31,7 +31,7 @@ From: ghcr.io/sinzlab/pytorch-singularity:v3.10-torch1.11.0-dj0.12.7-ubuntu22.04
     python3 -m pip install --upgrade torchvision==0.14.1
     python3 -m pip install --upgrade torchaudio==0.13.1
     python3 -m pip install --upgrade numpy==1.23.5
-    python3 -m pip install --upgrade datajoint==0.12.9 --ignore-installed blinker
+    python3 -m pip install --upgrade datajoint==0.13.7 --ignore-installed blinker
 
     # install current project
     python3 -m pip install -e .

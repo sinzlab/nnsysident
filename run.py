@@ -19,7 +19,14 @@ from nnfabrik.utility.hypersearch import Bayesian
 from nnfabrik.main import *
 from mei.main import MEISeed, MEIMethod
 from nnvision.tables.main import Recording
-from nnsysident.tables.mei import MEISelector, TrainedEnsembleModel, MEI, MEIMonkey
+from nnsysident.tables.mei import (
+    MEISelector,
+    TrainedEnsembleModel,
+    MEI,
+    MEIMonkey,
+    MEIExperimentsMonkey,
+    MEIExperimentsMouse,
+)
 from nnsysident.tables.experiments import *
 from nnsysident.tables.scoring import (
     OracleScore,
@@ -29,39 +36,34 @@ from nnsysident.tables.scoring import (
 )
 from nnsysident.utility.data_helpers import extract_data_key
 
+# restr = {'dataset_fn': 'nnsysident.datasets.mouse_loaders.static_loaders',
+#          'dataset_hash': '77fecfed4eaa33736d47244f2c14b36b',
+#          'model_fn': 'nnsysident.models.models.stacked2d_gamma',
+#          'model_hash': 'ea7c8ee30c9f5ab0a632392c3a4b32c0',
+#          'trainer_fn': 'nnsysident.training.trainers.standard_trainer',
+#          'trainer_hash': '69601593d387758e9ff6a5bf26dd6739'}
+# TrainedModel.populate(restr, reserve_jobs=True)
 
-# TrainedModel.populate("dataset_hash = '075e942fd72e20d77d672d7a942ebc61'",
-#                       "model_hash = 'acca54db77f06e9f37b72900ddc57263'",
-#                       "trainer_hash = '69601593d387758e9ff6a5bf26dd6739'",
-#                       reserve_jobs=True,)
-
-# TrainedModel.populate("dataset_hash = '775abd59b55c34534c35e24ced244c95'",
-#                       "model_hash = '3c59f65aa3fd05e4a3aae2bb3b081df1'",
-#                       "trainer_hash = '69601593d387758e9ff6a5bf26dd6739'",
-#                       reserve_jobs=True,)
 
 
 ########### Mouse MEI
-ensemble_hash = (TrainedEnsembleModel() &
-                 "ensemble_comment = 'gamma models, modulator, shifter'").fetch1("ensemble_hash")
-unit_ids = [8, 9, 26, 29, 33, 49, 59, 69, 70, 92]
-n_units = len(unit_ids)
-
-for mei_type in ["MEI", "CEI", "VEI+, 0.8", "VEI-, 0.8"]:
-    method_hash = (MEIMethod() & f"method_comment like '%{mei_type}%'").fetch1("method_hash")
-    restr = ["unit_id in {}".format(tuple(unit_ids[:n_units])),
-             "method_hash = '{}'".format(method_hash),
-             "ensemble_hash = '{}'".format(ensemble_hash),
-             ]
-    MEI().populate(*restr,
-                   display_progress=True,
-                   reserve_jobs=True,
-                   )
-    progress = MEI().progress(*restr, display=False)
-    while progress[0] != 0:
-        time.sleep(3*60)
-        progress = MEI().progress(*restr, display=False)
-
+for experiment_name in ["Zhiwei0, alternative ensemble, OneValue init"]:
+    for mei_type in ["MEI", "CEI", "VEI+", "VEI-"]:
+        restr = (
+                MEIExperimentsMouse.Restrictions &
+                (MEIMethod
+                 & f"method_comment like '%{mei_type}%'")
+                & 'experiment_name="{}"'.format(experiment_name)
+        )
+        MEI().populate(
+            restr,
+            display_progress=True,
+            reserve_jobs=True,
+        )
+        progress = MEI().progress(restr, display=False)
+        while progress[0] != 0:
+            time.sleep(3 * 60)
+            progress = MEI().progress(restr, display=False)
 
 
 ########### Monkey MEI
