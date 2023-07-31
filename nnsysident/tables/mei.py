@@ -9,6 +9,7 @@ from nnfabrik.main import Dataset, my_nnfabrik
 from nnvision.tables.main import Recording
 from torch.nn import Module
 from torch.utils.data import DataLoader
+from .experiments import Experiments
 
 if not "stores" in dj.config:
     dj.config["stores"] = {}
@@ -147,3 +148,32 @@ class MEIScore(dj.Computed):
         score = self.measure_function(mei, **self.function_kwargs)
         key[self.measure_attribute] = score
         self.insert1(key, ignore_extra_fields=True)
+
+
+@schema
+class MEIExperimentsMouse(Experiments):
+    class Restrictions(dj.Part):
+        definition = """
+        # This table contains the corresponding hashes to filter out models which form the respective experiment
+        -> master
+        -> Dataset
+        -> TrainedEnsembleModel
+        -> MEIMethod
+        -> MEI.selector_table
+        ---
+        experiment_restriction_ts=CURRENT_TIMESTAMP:   timestamp      # UTZ timestamp at time of insertion
+        """
+
+@schema
+class MEIExperimentsMonkey(Experiments):
+    class Restrictions(dj.Part):
+        definition = """
+        # This table contains the corresponding hashes to filter out models which form the respective experiment
+        -> master
+        -> Dataset
+        -> TrainedEnsembleModel
+        -> MEIMethod
+        -> MEIMonkey.selector_table
+        ---
+        experiment_restriction_ts=CURRENT_TIMESTAMP:   timestamp      # UTZ timestamp at time of insertion
+        """
