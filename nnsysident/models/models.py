@@ -360,6 +360,8 @@ class Stacked2d_ZIG(Stacked2dCoreReadoutModel):
             zero_thresholds = {}
             for k, v in dataloaders["train"].items():
                 zero_thresholds[k] = v.dataset.neurons.normalized_zero_thresholds
+        if isinstance(zero_thresholds, float):
+            zero_thresholds = {k: zero_thresholds for k in dataloaders["train"].keys()}
 
         if init_ks == "from dataset":
             init_ks = {}
@@ -407,6 +409,8 @@ class Stacked2d_ZIL(Stacked2dCoreReadoutModel):
             zero_thresholds = {}
             for k, v in dataloaders["train"].items():
                 zero_thresholds[k] = v.dataset.neurons.normalized_zero_thresholds
+        if isinstance(zero_thresholds, float):
+            zero_thresholds = {k: zero_thresholds for k in dataloaders["train"].keys()}
 
         core, readout, shifter, modulator = cls.build_base_model(
             dataloaders, seed, readout_type, inferred_params_n=inferred_params_n, **kwargs
