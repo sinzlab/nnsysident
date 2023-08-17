@@ -89,6 +89,7 @@ class TrainedModel(TrainedModelBase):
 
         # model training
         score, output, model_state = trainer(model=model, dataloaders=dataloaders, seed=seed, uid=key, cb=call_back)
+        print("Finished training!")
 
         # save resulting model_state into a temporary file to be attached
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -111,10 +112,12 @@ class TrainedModel(TrainedModelBase):
             comments.append((self.model_table & key).fetch1("model_comment"))
             comments.append((self.dataset_table & key).fetch1("dataset_comment"))
             key["comment"] = self.comment_delimitter.join(comments)
+            print("Inserting in TrainedModel table...")
             self.insert1(key)
 
             key["model_state"] = filepath
 
+            print("Inserting in ModelStorage table...")
             self.ModelStorage.insert1(key, ignore_extra_fields=True)
 
 
