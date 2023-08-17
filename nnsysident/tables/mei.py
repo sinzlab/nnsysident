@@ -7,6 +7,7 @@ import datajoint as dj
 import torch
 from nnfabrik.main import Dataset, my_nnfabrik
 from nnvision.tables.main import Recording
+from torch import load
 from torch.nn import Module
 from torch.utils.data import DataLoader
 from .experiments import Experiments
@@ -100,6 +101,16 @@ class TrainedEnsembleModel(TrainedEnsembleModelTemplate):
 class MEI(MEITemplate):
     trained_model_table = TrainedEnsembleModel
     selector_table = MEISelector
+
+    def load_mei(self, numpy=True):
+        mei_paths = self.fetch("mei")
+        meis = []
+        for path in mei_paths:
+            mei = load(path).data.numpy() if numpy else load(path)
+            meis.append(mei)
+            os.remove(path)
+        return meis
+
 
 
 @schema
