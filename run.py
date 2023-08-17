@@ -43,27 +43,33 @@ from nnsysident.utility.data_helpers import extract_data_key
 #          'trainer_fn': 'nnsysident.training.trainers.standard_trainer',
 #          'trainer_hash': '69601593d387758e9ff6a5bf26dd6739'}
 # TrainedModel.populate(restr, reserve_jobs=True)
+#
+# TrainedModel.populate("model_hash = 'c5e4a7ae50f49da6fdff0fb2bce18228'",
+#                       "dataset_hash = 'd4869853a4fd946b12adf99b70f9f1cf'",
+#                       "trainer_hash = '69601593d387758e9ff6a5bf26dd6739'",
+#                       reserve_jobs=True)
 
-
+MEI.populate(MEIExperimentsMouse.Restrictions & 'experiment_name="{}"'.format("Different L1 weights, CEI (0.8)"),
+             reserve_jobs=True,)
 
 ########### Mouse MEI
-for experiment_name in ["Zhiwei0, alternative ensemble, OneValue init"]:
-    for mei_type in ["MEI", "CEI", "VEI+", "VEI-"]:
-        restr = (
-                MEIExperimentsMouse.Restrictions &
-                (MEIMethod
-                 & f"method_comment like '%{mei_type}%'")
-                & 'experiment_name="{}"'.format(experiment_name)
-        )
-        MEI().populate(
-            restr,
-            display_progress=True,
-            reserve_jobs=True,
-        )
-        progress = MEI().progress(restr, display=False)
-        while progress[0] != 0:
-            time.sleep(3 * 60)
-            progress = MEI().progress(restr, display=False)
+# for experiment_name in ["Zhiwei0, alternative ensemble, OneValue init"]:
+#     for mei_type in ["MEI", "CEI", "VEI+", "VEI-"]:
+#         restr = (
+#                 MEIExperimentsMouse.Restrictions &
+#                 (MEIMethod
+#                  & f"method_comment like '%{mei_type}%'")
+#                 & 'experiment_name="{}"'.format(experiment_name)
+#         )
+#         MEI().populate(
+#             restr,
+#             display_progress=True,
+#             reserve_jobs=True,
+#         )
+#         progress = MEI().progress(restr, display=False)
+#         while progress[0] != 0:
+#             time.sleep(3 * 60)
+#             progress = MEI().progress(restr, display=False)
 
 
 ########### Monkey MEI
