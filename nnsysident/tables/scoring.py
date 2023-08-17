@@ -3,16 +3,14 @@ import os
 import datajoint as dj
 import numpy as np
 from nnfabrik.builder import get_data
-# from nnfabrik.templates.scoring import SummaryScoringBase
 from nnfabrik.main import my_nnfabrik
-from nnfabrik.templates.trained_model import TrainedModelBase
 
 from ..utility.measures import get_correlations, get_feve, get_fraction_oracles, get_r2er
-from .experiments import TrainedModel, TrainedModelTransfer
+from .experiments import TrainedModel
 
 # create the context object
 try:
-    main = my_nnfabrik(os.environ["DJ_SCHEMA_NAME"])
+    main = my_nnfabrik(os.environ["DJ_SCHEMA_NAME"], use_common_fabrikant=False)
 except:
     raise ValueError(
         " ".join(
@@ -218,26 +216,8 @@ class OracleScore(ScoringTable):
 
 
 @schema
-class OracleScoreTransfer(ScoringTable):
-    trainedmodel_table = TrainedModelTransfer
-    measure_dataset = "test"
-    measure_attribute = "fraction_oracle"
-    measure_function = staticmethod(get_fraction_oracles)
-    function_kwargs = {}
-
-
-@schema
 class TestCorr(ScoringTable):
     trainedmodel_table = TrainedModel
-    measure_dataset = "test"
-    measure_attribute = "test_correlation"
-    measure_function = staticmethod(get_correlations)
-    function_kwargs = {"as_dict": False, "per_neuron": False}
-
-
-@schema
-class TestCorrTransfer(ScoringTable):
-    trainedmodel_table = TrainedModelTransfer
     measure_dataset = "test"
     measure_attribute = "test_correlation"
     measure_function = staticmethod(get_correlations)
@@ -254,26 +234,8 @@ class R2erScore(ScoringTable):
 
 
 @schema
-class R2erScoreTransfer(ScoringTable):
-    trainedmodel_table = TrainedModelTransfer
-    measure_dataset = "test"
-    measure_attribute = "r2er"
-    measure_function = staticmethod(get_r2er)
-    function_kwargs = {}
-
-
-@schema
 class FeveScore(ScoringTable):
     trainedmodel_table = TrainedModel
-    measure_dataset = "test"
-    measure_attribute = "feve"
-    measure_function = staticmethod(get_feve)
-    function_kwargs = {}
-
-
-@schema
-class FeveScoreTransfer(ScoringTable):
-    trainedmodel_table = TrainedModelTransfer
     measure_dataset = "test"
     measure_attribute = "feve"
     measure_function = staticmethod(get_feve)

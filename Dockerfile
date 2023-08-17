@@ -13,6 +13,7 @@ ADD ./data_port /src/data_port
 RUN pip install -e /src/data_port
 
 RUN pip install git+https://github.com/kklurz/neuralpredictors.git@main
+RUN pip install git+https://github.com/sinzlab/nnvision.git@inception_loops
 
 RUN pip install nnfabrik==0.1.0
 RUN pip install figrid
@@ -24,6 +25,8 @@ RUN pip3 --no-cache-dir install \
     wandb
 
 RUN pip install --upgrade scikit-image
+RUN pip install --upgrade numpy==1.23.5
+RUN pip install --upgrade datajoint==0.12.9
 
 # install the current project
 WORKDIR /project

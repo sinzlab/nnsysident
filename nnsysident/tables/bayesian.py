@@ -3,7 +3,8 @@ import os
 from nnfabrik.main import *
 from nnfabrik.templates.utility import find_object
 
-from .experiments import Seed, TrainedModel, TrainedModelTransfer
+from .experiments import Seed
+from nnfabrik.templates.trained_model import TrainedModelBase
 
 if not "stores" in dj.config:
     dj.config["stores"] = {}
@@ -18,7 +19,7 @@ dj.config["stores"]["minio_models_bayesian"] = {
 }
 # create the context object
 try:
-    main = my_nnfabrik(os.environ["DJ_SCHEMA_NAME"])
+    main = my_nnfabrik(os.environ["DJ_SCHEMA_NAME"], use_common_fabrikant=False)
 except:
     raise ValueError(
         " ".join(
@@ -50,7 +51,7 @@ class ModelBayesian(Model):
 
 
 @schema
-class TrainedModelBayesian(TrainedModel):
+class TrainedModelBayesian(TrainedModelBase):
     storage = "minio_models_bayesian"
     table_comment = "Trained models for bayesian searches"
 
@@ -66,23 +67,10 @@ class TrainedModelBayesian(TrainedModel):
     def seed_table(self):
         return SeedBayesian
 
-
-@schema
-class TrainedModelBayesianTransfer(TrainedModelTransfer):
-    storage = "minio_models_bayesian"
-    table_comment = "Trained models for bayesian searches"
+    @property
+    def trainer_table(self):
+        return Trainer
 
     @property
-    def model_table(self):
-        return ModelBayesian
-
-    @property
-    def dataset_table(self):
-        return DatasetBayesian
-
-    @property
-    def seed_table(self):
-        return SeedBayesian
-
-    def make(self, key):
-        raise NotImplementedError("Still needs to be implemented")
+    def user_table(self):
+        return Fabrikant

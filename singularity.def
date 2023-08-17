@@ -1,28 +1,40 @@
-BootStrap: shub
-From: sinzlab/pytorch-singularity:v3.8-torch1.7.0-dj0.12.7
+Bootstrap: oras
+From: ghcr.io/sinzlab/pytorch-singularity:v3.10-torch1.11.0-dj0.12.7-ubuntu22.04.def
 
 %files
+    nnsysident
     setup.py
-    ../nnsysident /src/nnsysident
-    ../data_port /src/data_port
+    pyproject.toml
 
 %post
-    # upgrade pip
-    python -m pip install --upgrade pip
+    # Install essential Ubuntu packages
+    # and upgrade pip
+    python3 -m pip install --upgrade pip
 
     # install third-party libraries
-    python -m pip install --no-cache-dir install \
-            statsmodels \
-            ax_platform \
-            hiplot
+    python3 -m pip --no-cache-dir install \
+        ipdb \
+        wandb \
+        lipstick \
+        figrid \
+        statsmodels \
+        ax_platform \
+        git+https://github.com/kklurz/neuralpredictors@main \
+        git+https://github.com/kklurz/nnvision@inception_loops \
+        git+https://github.com/sinzlab/data_port@master \
+        git+https://github.com/kklurz/mei@inception_loop \
+        git+https://github.com/sinzlab/nnfabrik@0.2.2
 
-    # install internal published libraries
-    python -m pip install nnfabrik
-    python -m pip install neuralpredictors
 
-    # install internal unpublished libraries
-    python -m pip install -e /src/nnsysident
-    python -m pip install -e /src/data_port
+    # Downgrade numpy to work with new datajoint, upgrade datajoint because of bug with part tables
+    python3 -m pip install --upgrade torch==1.13.1
+    python3 -m pip install --upgrade torchvision==0.14.1
+    python3 -m pip install --upgrade torchaudio==0.13.1
+    python3 -m pip install --upgrade numpy==1.23.5
+    python3 -m pip install --upgrade datajoint==0.13.7 --ignore-installed blinker
+
+    # install current project
+    python3 -m pip install -e .
 
 %startscript
     exec "$@"

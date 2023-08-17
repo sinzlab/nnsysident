@@ -7,38 +7,42 @@ from nnfabrik.utility.nn_helpers import set_random_seed
 from tqdm import tqdm
 
 import neuralpredictors.measures as losses
-from neuralpredictors.training import LongCycler, MultipleObjectiveTracker, early_stopping
+from neuralpredictors.training import (
+    LongCycler,
+    MultipleObjectiveTracker,
+    early_stopping,
+)
 
 from ..utility import measures
 
 
 def standard_trainer(
-        model,
-        dataloaders,
-        seed,
-        loss_function="PoissonLoss",
-        avg_loss=False,
-        scale_loss=True,
-        stop_function="get_correlations",
-        loss_accum_batch_n=None,
-        device="cuda",
-        verbose=True,
-        interval=1,
-        patience=5,
-        epoch=0,
-        lr_init=0.005,
-        max_iter=200,
-        maximize=True,
-        tolerance=1e-6,
-        restore_best=True,
-        lr_decay_steps=3,
-        lr_decay_factor=0.3,
-        min_lr=0.0001,
-        cb=None,
-        track_training=False,
-        return_test_score=False,
-        detach_core=False,
-        **kwargs
+    model,
+    dataloaders,
+    seed,
+    loss_function=None,
+    avg_loss=False,
+    scale_loss=True,
+    stop_function="get_correlations",
+    loss_accum_batch_n=None,
+    device="cuda",
+    verbose=True,
+    interval=1,
+    patience=5,
+    epoch=0,
+    lr_init=0.005,
+    max_iter=200,
+    maximize=True,
+    tolerance=1e-6,
+    restore_best=True,
+    lr_decay_steps=3,
+    lr_decay_factor=0.3,
+    min_lr=0.0001,
+    cb=None,
+    track_training=False,
+    return_test_score=False,
+    detach_core=False,
+    **kwargs
 ):
     """
     Args:
@@ -71,7 +75,8 @@ def standard_trainer(
         **kwargs:
     Returns:
     """
-
+    if loss_function is None:
+        loss_function = model.loss_fn
     if stop_function == "get_loss" and maximize:
         warn("A loss function is the stopping criterion but 'maximize' is set to True for the early stopping")
 
@@ -115,7 +120,7 @@ def standard_trainer(
         dataloaders=dataloaders["validation"],
         device=device,
         per_neuron=False,
-        avg=True,
+        avg=avg_loss,
     )
     if stop_function == "get_loss":
         stop_closure = partial(stop_closure, loss_function=loss_function)
@@ -173,18 +178,18 @@ def standard_trainer(
 
     # train over epochs
     for epoch, val_obj in early_stopping(
-            model,
-            stop_closure,
-            interval=interval,
-            patience=patience,
-            start=epoch,
-            max_iter=max_iter,
-            maximize=maximize,
-            tolerance=tolerance,
-            restore_best=restore_best,
-            tracker=tracker,
-            scheduler=scheduler,
-            lr_decay_steps=lr_decay_steps,
+        model,
+        stop_closure,
+        interval=interval,
+        patience=patience,
+        start=epoch,
+        max_iter=max_iter,
+        maximize=maximize,
+        tolerance=tolerance,
+        restore_best=restore_best,
+        tracker=tracker,
+        scheduler=scheduler,
+        lr_decay_steps=lr_decay_steps,
     ):
 
         # print the quantities from tracker
@@ -200,7 +205,7 @@ def standard_trainer(
         # train over batches
         optimizer.zero_grad()
         for batch_no, (data_key, data) in tqdm(
-                enumerate(LongCycler(dataloaders["train"])), total=n_iterations, desc="Epoch {}".format(epoch)
+            enumerate(LongCycler(dataloaders["train"])), total=n_iterations, desc="Epoch {}".format(epoch)
         ):
 
             loss = full_objective(model, dataloaders["train"], data_key, data, detach_core=detach_core)
@@ -229,11 +234,17 @@ def standard_trainer(
             loss_function,
             device=device,
             per_neuron=False,
+            avg=True,
         )
-
+    if stop_function == "get_correlations":
+        score_measure = "correlation"
+    elif stop_function == "get_loss":
+        score_measure = "loss"
+    else:
+        raise NotImplementedError("Implement a score measure for the stop function '{}'".format(stop_function))
     score = (
-        output["best_model_stats"]["correlation"]["test"]
+        output["best_model_stats"][score_measure]["test"]
         if return_test_score
-        else output["best_model_stats"]["correlation"]["validation"]
+        else output["best_model_stats"][score_measure]["validation"]
     )
     return score, output, model.state_dict()

@@ -82,11 +82,9 @@ def model_predictions(model, dataloader, data_key, device="cpu"):
                 behavior = b.behavior.to(device) if hasattr(b, "behavior") else None
                 images = b.images.to(device) if "images" in b._fields else b.inputs.to(device)
                 responses = b.responses if "responses" in b._fields else b.targets.to(device)
-                outputs.append(
-                    model.predict_mean(images, data_key=data_key, pupil_center=pupil_center, behavior=behavior)
-                    .cpu()
-                    .data.numpy()
-                )
+                output = model.predict_mean(images, data_key=data_key, pupil_center=pupil_center, behavior=behavior).cpu().data.numpy()
+                output = np.repeat(output, responses.shape[0], axis=0) if output.shape[0] == 1 else output
+                outputs.append(output)
                 targets.append(
                     model.transform(responses, data_key=data_key)[0].cpu().data.numpy()
                     if hasattr(model, "transform")
@@ -173,11 +171,13 @@ def get_loss(
     with eval_state(model) if not isinstance(model, types.FunctionType) else contextlib.nullcontext():
         for k, v in dataloaders.items():
             loss = []
+            n_trials = 0
             for b in v:
                 images = b.images.to(device) if "images" in b._fields else b.inputs.to(device)
                 responses = b.responses.to(device) if "responses" in b._fields else b.targets.to(device)
                 pupil_center = b.pupil_center.to(device) if hasattr(b, "pupil_center") else None
                 behavior = b.behavior.to(device) if hasattr(b, "behavior") else None
+                n_trials += images.shape[0]
                 if hasattr(model, "transform"):
                     loss.append(
                         loss_fn(
@@ -198,18 +198,21 @@ def get_loss(
                     )
 
             loss = np.vstack(loss)
-            loss_vals[k] = np.mean(loss, axis=0) if avg else np.sum(loss, axis=0)
+            loss = np.mean(loss, axis=0) if avg else np.sum(loss, axis=0)
+            loss_vals[k] = loss
+
     if as_dict:
         return loss_vals
     else:
+        loss_per_neuron = np.hstack([v for v in loss_vals.values()])
         if per_neuron:
-            return np.hstack([v for v in loss_vals.values()])
+            return loss_per_neuron
         else:
             return (
-                np.mean(np.hstack([v for v in loss_vals.values()]))
+                np.mean(loss_per_neuron)
                 if avg
-                else np.sum(np.hstack([v for v in loss_vals.values()]))
-            )
+                else np.sum(loss_per_neuron))
+
 
 
 def get_model_performance(model, dataloaders, loss_function, device="cpu", print_performance=True):
