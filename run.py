@@ -1,6 +1,18 @@
 #!/usr/bin/python3
 
 import os
+# if os.environ.get('inside_singularity_container', "NO") == "YES":
+#     # If this code is running in a singularity container, update the mei package
+#     import subprocess
+#     import sys
+#     print("Reinstalling MEI package...")
+#     subprocess.check_call([sys.executable,
+#                            "-m",
+#                            "pip",
+#                            "install",
+#                            "git+https://github.com/kklurz/mei@inception_loop",
+#                            '--force-reinstall'])
+
 import time
 import datajoint as dj
 import pandas as pd
@@ -15,7 +27,7 @@ name = "vei"
 os.environ["DJ_SCHEMA_NAME"] = f"metrics_{name}"
 dj.config["nnfabrik.schema_name"] = os.environ["DJ_SCHEMA_NAME"]
 
-from nnfabrik.utility.hypersearch import Bayesian
+# from nnfabrik.utility.hypersearch import Bayesian
 from nnfabrik.main import *
 from mei.main import MEISeed, MEIMethod
 from nnvision.tables.main import Recording
@@ -49,8 +61,10 @@ from nnsysident.utility.data_helpers import extract_data_key
 #                       "trainer_hash = '69601593d387758e9ff6a5bf26dd6739'",
 #                       reserve_jobs=True)
 
-MEI.populate(MEIExperimentsMouse.Restrictions & 'experiment_name="{}"'.format("Different L1 weights, CEI (0.8)"),
-             reserve_jobs=True,)
+restr = MEIExperimentsMouse.Restrictions & 'experiment_name="{}"'.format("Post-optimization of CEIs (0.8) created with different L1 weights")
+uis = np.unique(restr.fetch("unit_id"))
+for ui in uis:
+    MEI.populate(restr & f"unit_id = {ui}", reserve_jobs=True)
 
 ########### Mouse MEI
 # for experiment_name in ["Zhiwei0, alternative ensemble, OneValue init"]:

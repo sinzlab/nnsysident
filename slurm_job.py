@@ -104,6 +104,7 @@ class SlurmJob:
             singularity {singularity_mode} \
             --nv \
             --env-file .env \
+            --env inside_singularity_container=YES \
             --no-home  \
             --bind {bindings}  \
             singularity.sif {instance_name} \
