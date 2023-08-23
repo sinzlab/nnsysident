@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import os
+import shutil
+import uuid
 from typing import Any, Dict
 
 import datajoint as dj
 import torch
+import numpy as np
 from nnfabrik.main import Dataset, my_nnfabrik
 from nnvision.tables.main import Recording
 from torch import load
@@ -102,14 +105,19 @@ class MEI(MEITemplate):
     trained_model_table = TrainedEnsembleModel
     selector_table = MEISelector
 
-    def load_mei(self, numpy=True):
-        mei_paths = self.fetch("mei")
-        meis = []
-        for path in mei_paths:
-            mei = load(path).data.numpy() if numpy else load(path)
-            meis.append(mei)
-            os.remove(path)
-        return meis
+    def load_data(self, names, numpy=True):
+        download_path = '/project/notebooks/data' + str(uuid.uuid4())
+        data = (self * self.method_table).fetch(*names, download_path=download_path)
+
+        if "mei" in names:
+            idx = names.index("mei")
+            meis = []
+            for path in data[idx]:
+                mei = load(path).data.numpy() if numpy else load(path)
+                meis.append(mei)
+            data[idx] = np.stack(meis) if numpy else torch.stack(meis)
+        shutil.rmtree(download_path)
+        return data
 
 
 
