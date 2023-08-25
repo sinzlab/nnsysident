@@ -4,6 +4,7 @@ import os
 import shutil
 import uuid
 from typing import Any, Dict
+from tqdm import tqdm
 
 import datajoint as dj
 import torch
@@ -112,7 +113,7 @@ class MEI(MEITemplate):
         if "mei" in names:
             idx = names.index("mei")
             meis = []
-            for path in data[idx]:
+            for path in tqdm(data[idx], total=len(data[idx])):
                 mei = load(path).data.numpy() if numpy else load(path)
                 meis.append(mei)
             data[idx] = np.stack(meis) if numpy else torch.stack(meis)
