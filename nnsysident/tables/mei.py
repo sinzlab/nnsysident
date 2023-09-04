@@ -117,7 +117,7 @@ class MEI(MEITemplate):
                 mei = load(path).data.numpy() if numpy else load(path)
                 meis.append(mei)
             data[idx] = np.stack(meis) if numpy else torch.stack(meis)
-        shutil.rmtree(download_path)
+            shutil.rmtree(download_path)
         return data
 
 
