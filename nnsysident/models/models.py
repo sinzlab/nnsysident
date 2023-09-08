@@ -78,6 +78,7 @@ class Stacked2dCoreReadoutModel:
         stack=-1,
         depth_separable=True,
         linear=False,
+        init_with_lurz_core=False,
         # encoder args
         modulator_kwargs=None,
         shifter_kwargs=None,
@@ -251,6 +252,13 @@ class Stacked2dCoreReadoutModel:
             shifter = None
         else:
             shifter = MLPShifter(list(n_neurons_dict.keys()), **shifter_kwargs)
+
+        if init_with_lurz_core:
+            not_matching_keys = core.load_state_dict(torch.load('/project/nnsysident/models/lurz_model_core'), strict=False)
+            not_matching_keys = list(key for key in not_matching_keys.missing_keys) + list(
+                key for key in not_matching_keys.unexpected_keys
+            )
+            assert len(not_matching_keys) == 0, "{} not matching keys found".format(len(not_matching_keys))
 
         return core, readout, shifter, modulator
 
