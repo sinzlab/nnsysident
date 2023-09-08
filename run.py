@@ -1,6 +1,18 @@
 #!/usr/bin/python3
 
 import os
+# if os.environ.get('inside_singularity_container', "NO") == "YES":
+#     # If this code is running in a singularity container, update the mei package
+#     import subprocess
+#     import sys
+#     print("Reinstalling MEI package...")
+#     subprocess.check_call([sys.executable,
+#                            "-m",
+#                            "pip",
+#                            "install",
+#                            "git+https://github.com/kklurz/mei@inception_loop",
+#                            '--force-reinstall'])
+
 import time
 import datajoint as dj
 import pandas as pd
@@ -15,7 +27,7 @@ name = "vei"
 os.environ["DJ_SCHEMA_NAME"] = f"metrics_{name}"
 dj.config["nnfabrik.schema_name"] = os.environ["DJ_SCHEMA_NAME"]
 
-from nnfabrik.utility.hypersearch import Bayesian
+# from nnfabrik.utility.hypersearch import Bayesian
 from nnfabrik.main import *
 from mei.main import MEISeed, MEIMethod
 from nnvision.tables.main import Recording
@@ -44,13 +56,29 @@ from nnsysident.utility.data_helpers import extract_data_key
 #          'trainer_hash': '69601593d387758e9ff6a5bf26dd6739'}
 # TrainedModel.populate(restr, reserve_jobs=True)
 #
-# TrainedModel.populate("model_hash = 'c5e4a7ae50f49da6fdff0fb2bce18228'",
-#                       "dataset_hash = 'd4869853a4fd946b12adf99b70f9f1cf'",
-#                       "trainer_hash = '69601593d387758e9ff6a5bf26dd6739'",
-#                       reserve_jobs=True)
+# keys = (TrainedModel() & "dataset_hash = 'd4869853a4fd946b12adf99b70f9f1cf'" & "model_fn like '%zig%'").proj().fetch(as_dict=True)
+# for key in keys:
+#     key["dataset_hash"] = "9a0e27627452efcb94aed97825771e23"
+#     key["model_hash"] = "49503eacc668e8950bcc3414e1d623d7"
+# TrainedModel.populate(keys, reserve_jobs=True)
 
-MEI.populate(MEIExperimentsMouse.Restrictions & 'experiment_name="{}"'.format("Different L1 weights, CEI (0.8)"),
-             reserve_jobs=True,)
+# Plain MEIs
+unit_ids = np.sort((((Dataset & "dataset_hash = '9a0e27627452efcb94aed97825771e23'")) * MEISelector).fetch("unit_id"))[:250]
+MEI.populate("method_hash = '54f863f93364931f53ecdfe7c2bc5a03'",
+             "dataset_hash = '9a0e27627452efcb94aed97825771e23'",
+             "unit_id in {}".format(tuple(unit_ids)),
+             "ensemble_hash = '694b7602e4c885daccccc10991dddded'", reserve_jobs=True)
+#
+# # Experiment
+experiment_names = ["Different L1 weights, CEI (0.8), UNCORRUPTED Jiakun",
+                    "Different L1 weights, CEI (0.8), many neurons, UNCORRUPTED Jiakun",
+                    "Post-optimization of CEIs (0.8) created with different L1 weights, UNCORRUPTED Jiakun",
+                    "Post-optimization of CEIs (0.8) created with different L1 weights, many neurons, UNCORRUPTED Jiakun"]
+for experiment_name in experiment_names:
+    restr = MEIExperimentsMouse.Restrictions & f'experiment_name="{experiment_name}"'
+    uis = np.unique(restr.fetch("unit_id"))
+    for ui in uis:
+        MEI.populate(restr & f"unit_id = {ui}", reserve_jobs=True)
 
 ########### Mouse MEI
 # for experiment_name in ["Zhiwei0, alternative ensemble, OneValue init"]:
