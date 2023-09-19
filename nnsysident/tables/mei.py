@@ -107,7 +107,7 @@ class MEI(MEITemplate):
     selector_table = MEISelector
 
     def load_data(self, names, numpy=True):
-        download_path = '/project/notebooks/data' + str(uuid.uuid4())
+        download_path = '/project/notebooks/data_' + str(uuid.uuid4())
         data = (self * self.method_table).fetch(*names, download_path=download_path)
 
         if "mei" in names:
