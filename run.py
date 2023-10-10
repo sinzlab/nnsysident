@@ -38,6 +38,7 @@ from nnsysident.tables.mei import (
     MEIMonkey,
     MEIExperimentsMonkey,
     MEIExperimentsMouse,
+    Gradients
 )
 from nnsysident.tables.experiments import *
 from nnsysident.tables.scoring import (
@@ -63,17 +64,22 @@ from nnsysident.utility.data_helpers import extract_data_key
 # TrainedModel.populate(keys, reserve_jobs=True)
 
 # Plain MEIs
-unit_ids = np.sort((((Dataset & "dataset_hash = '9a0e27627452efcb94aed97825771e23'")) * MEISelector).fetch("unit_id"))[:250]
-MEI.populate("method_hash = '54f863f93364931f53ecdfe7c2bc5a03'",
-             "dataset_hash = '9a0e27627452efcb94aed97825771e23'",
-             "unit_id in {}".format(tuple(unit_ids)),
-             "ensemble_hash = '694b7602e4c885daccccc10991dddded'", reserve_jobs=True)
+# unit_ids = np.sort((((Dataset & "dataset_hash = '9a0e27627452efcb94aed97825771e23'")) * MEISelector).fetch("unit_id"))[:250]
+# MEI.populate("method_hash = 'f36b2ca6ab7b71e91ad190192b7da9ea'",
+#              "dataset_hash = '9a0e27627452efcb94aed97825771e23'",
+#              "unit_id in {}".format(tuple(unit_ids)),
+#              "ensemble_hash = '694b7602e4c885daccccc10991dddded'", reserve_jobs=True)
+
+
 #
+# key = dict(dataset_fn = "nnsysident.datasets.mouse_loaders.static_loaders",
+#            dataset_hash = "9a0e27627452efcb94aed97825771e23",
+#            ensemble_hash = '694b7602e4c885daccccc10991dddded',)
+# Gradients().populate(key, reserve_jobs=True)
+
+
 # # Experiment
-experiment_names = ["Different L1 weights, CEI (0.8), UNCORRUPTED Jiakun",
-                    "Different L1 weights, CEI (0.8), many neurons, UNCORRUPTED Jiakun",
-                    "Post-optimization of CEIs (0.8) created with different L1 weights, UNCORRUPTED Jiakun",
-                    "Post-optimization of CEIs (0.8) created with different L1 weights, many neurons, UNCORRUPTED Jiakun"]
+experiment_names = ["Orthogonal VEIs, UNCORRUPTED Jiakun"]
 for experiment_name in experiment_names:
     restr = MEIExperimentsMouse.Restrictions & f'experiment_name="{experiment_name}"'
     uis = np.unique(restr.fetch("unit_id"))
