@@ -36,7 +36,6 @@ from nnsysident.tables.mei import (
     TrainedEnsembleModel,
     MEI,
     MEIMonkey,
-    MEIExperimentsMonkey,
     MEIExperimentsMouse,
     Gradients
 )
@@ -49,10 +48,10 @@ from nnsysident.tables.scoring import (
 )
 from nnsysident.utility.data_helpers import extract_data_key
 
-# restr = {'dataset_fn': 'nnsysident.datasets.mouse_loaders.static_loaders',
-#          'dataset_hash': '77fecfed4eaa33736d47244f2c14b36b',
-#          'model_fn': 'nnsysident.models.models.stacked2d_gamma',
-#          'model_hash': 'ea7c8ee30c9f5ab0a632392c3a4b32c0',
+# restr = {'model_fn': 'nnsysident.models.models.stacked2d_zig',
+#          'model_hash': '49503eacc668e8950bcc3414e1d623d7',
+#          'dataset_fn': 'nnsysident.datasets.mouse_loaders.static_loaders',
+#          'dataset_hash': '9a0e27627452efcb94aed97825771e23',
 #          'trainer_fn': 'nnsysident.training.trainers.standard_trainer',
 #          'trainer_hash': '69601593d387758e9ff6a5bf26dd6739'}
 # TrainedModel.populate(restr, reserve_jobs=True)
@@ -79,7 +78,7 @@ from nnsysident.utility.data_helpers import extract_data_key
 
 
 # # Experiment
-experiment_names = ["Orthogonal VEIs, UNCORRUPTED Jiakun"]
+experiment_names = ["Orthogonal VEIs from MEIs with L1 norm, UNCORRUPTED Jiakun"]
 for experiment_name in experiment_names:
     restr = MEIExperimentsMouse.Restrictions & f'experiment_name="{experiment_name}"'
     uis = np.unique(restr.fetch("unit_id"))
