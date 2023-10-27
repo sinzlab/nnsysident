@@ -23,7 +23,7 @@ dj.config["database.user"] = os.environ["DJ_USERNAME"]
 dj.config["database.password"] = os.environ["DJ_PASSWORD"]
 dj.config["enable_python_native_blobs"] = True
 
-name = "vei"
+name = "vei2"
 os.environ["DJ_SCHEMA_NAME"] = f"metrics_{name}"
 dj.config["nnfabrik.schema_name"] = os.environ["DJ_SCHEMA_NAME"]
 
@@ -47,6 +47,9 @@ from nnsysident.tables.scoring import (
     TestCorr,
 )
 from nnsysident.utility.data_helpers import extract_data_key
+
+# MEI.populate("ensemble_hash = '2c2e63c647c6c032c126dfe804d5bc06'", reserve_jobs=True)
+
 
 # restr = {'model_fn': 'nnsysident.models.models.stacked2d_zig',
 #          'model_hash': '49503eacc668e8950bcc3414e1d623d7',
@@ -77,8 +80,8 @@ from nnsysident.utility.data_helpers import extract_data_key
 # Gradients().populate(key, reserve_jobs=True)
 
 
-# # Experiment
-experiment_names = ["Orthogonal VEIs from MEIs with L1 norm, UNCORRUPTED Jiakun"]
+# Experiment
+experiment_names = ["Orthogonal VEIs from MENIs"]
 for experiment_name in experiment_names:
     restr = MEIExperimentsMouse.Restrictions & f'experiment_name="{experiment_name}"'
     uis = np.unique(restr.fetch("unit_id"))

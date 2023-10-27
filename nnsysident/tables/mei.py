@@ -94,6 +94,14 @@ class MouseSelectorTemplate(dj.Computed):
 class MEISelector(MouseSelectorTemplate):
     dataset_table = Dataset
 
+@schema
+class MENI(dj.Manual):
+    definition = """
+    -> MEISelector                     
+    ---
+    meni: longblob                # Most exiting natural image
+    """
+
 
 @schema
 class TrainedEnsembleModel(TrainedEnsembleModelTemplate):
@@ -105,6 +113,7 @@ class TrainedEnsembleModel(TrainedEnsembleModelTemplate):
 class MEI(MEITemplate):
     trained_model_table = TrainedEnsembleModel
     selector_table = MEISelector
+    meni_table = MENI
 
     def load_data(self, names, numpy=True):
         download_path = '/project/notebooks/data_' + str(uuid.uuid4())
@@ -119,7 +128,6 @@ class MEI(MEITemplate):
             data[idx] = np.stack(meis) if numpy else torch.stack(meis)
             shutil.rmtree(download_path)
         return data
-
 
 
 @schema
