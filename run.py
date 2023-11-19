@@ -48,6 +48,10 @@ from nnsysident.tables.scoring import (
 )
 from nnsysident.utility.data_helpers import extract_data_key
 
+
+TrainedModelMeanVarScale.populate("dataset_hash = '2859e8af6428fd49e6a306006e81a1ba'",
+                                  "model_hash = '49503eacc668e8950bcc3414e1d623d7'",
+                                  reserve_jobs=True)
 # MEI.populate("ensemble_hash = '2c2e63c647c6c032c126dfe804d5bc06'", reserve_jobs=True)
 
 
@@ -66,11 +70,11 @@ from nnsysident.utility.data_helpers import extract_data_key
 # TrainedModel.populate(keys, reserve_jobs=True)
 
 # Plain MEIs
-# unit_ids = np.sort((((Dataset & "dataset_hash = '9a0e27627452efcb94aed97825771e23'")) * MEISelector).fetch("unit_id"))[:250]
-# MEI.populate("method_hash = 'f36b2ca6ab7b71e91ad190192b7da9ea'",
-#              "dataset_hash = '9a0e27627452efcb94aed97825771e23'",
+# unit_ids = np.sort((((Dataset & "dataset_hash = '2859e8af6428fd49e6a306006e81a1ba'")) * MEISelector).fetch("unit_id"))[:700]
+# MEI.populate("method_hash = 'f0dbefc00da768eeda4bd8dce49a016f'",
+#              "dataset_hash = '2859e8af6428fd49e6a306006e81a1ba'",
 #              "unit_id in {}".format(tuple(unit_ids)),
-#              "ensemble_hash = '694b7602e4c885daccccc10991dddded'", reserve_jobs=True)
+#              "ensemble_hash = '004f742851122a3cb7b5fb131b44a7d6'", reserve_jobs=True)
 
 
 #
@@ -81,12 +85,12 @@ from nnsysident.utility.data_helpers import extract_data_key
 
 
 # Experiment
-experiment_names = ["Orthogonal VEIs from MENIs"]
-for experiment_name in experiment_names:
-    restr = MEIExperimentsMouse.Restrictions & f'experiment_name="{experiment_name}"'
-    uis = np.unique(restr.fetch("unit_id"))
-    for ui in uis:
-        MEI.populate(restr & f"unit_id = {ui}", reserve_jobs=True)
+# experiment_names = ["Orthogonal VEIs from MEIs, Lurz dataset"]
+# for experiment_name in experiment_names:
+#     restr = MEIExperimentsMouse.Restrictions & f'experiment_name="{experiment_name}"'
+#     uis = np.unique(restr.fetch("unit_id"))
+#     for ui in uis:
+#         MEI.populate(restr & f"unit_id = {ui}", reserve_jobs=True)
 
 ########### Mouse MEI
 # for experiment_name in ["Zhiwei0, alternative ensemble, OneValue init"]:
