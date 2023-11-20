@@ -123,23 +123,31 @@ class TrainedModel(TrainedModelBase):
 
 
 @schema
-class TrainedModelMeanVarScale(dj.Computed):
-    definition = """
-    -> TrainedModel
-    ---
-    score:                             float        # score
-    train_loss:                        float        # train_loss
-    validation_loss:                   float        # validation_loss
-    test_loss:                         float        # test_loss
-    train_correlation:                 float        # train_correlation
-    validation_correlation:            float        # validation_correlation
-    test_correlation:                  float        # test_correlation
-    output:                            longblob     # trainer object's output
-    norm_var_diffs:                    longblob     # normalized variance differences
-    mean_var_scale:                    longblob     # parameters of polynomial fit between mean and variance
-    meanvarscale_ts=CURRENT_TIMESTAMP: timestamp    # UTZ timestamp at time of insertion
+class TrainedModelMeanVarScale(TrainedModelBase):
+    nnfabrik = main
+    data_info_table = None
+    table_comment = "Trained models"
+    storage = "minio"
 
-    """
+    @property
+    def definition(self):
+        definition = """
+        -> TrainedModel
+        ---
+        score:                             float        # score
+        train_loss:                        float        # train_loss
+        validation_loss:                   float        # validation_loss
+        test_loss:                         float        # test_loss
+        train_correlation:                 float        # train_correlation
+        validation_correlation:            float        # validation_correlation
+        test_correlation:                  float        # test_correlation
+        output:                            longblob     # trainer object's output
+        norm_var_diffs:                    longblob     # normalized variance differences
+        mean_var_scale:                    longblob     # parameters of polynomial fit between mean and variance
+        meanvarscale_ts=CURRENT_TIMESTAMP: timestamp    # UTZ timestamp at time of insertion
+        """
+        return definition
+
     def make(self, key):
         dataloaders, model = (TrainedModel & key).load_model()
         for data_key, rd in model.readout.items():
@@ -149,7 +157,7 @@ class TrainedModelMeanVarScale(dj.Computed):
         model.to("cuda")
 
         trainer = (Trainer() & key).get_trainer()
-        score, output, state_dict = trainer(model=model,
+        score, output, model_state = trainer(model=model,
                                             dataloaders=dataloaders,
                                             seed=42,
                                             track_training=False,
@@ -159,32 +167,40 @@ class TrainedModelMeanVarScale(dj.Computed):
         assert not (model.readout['20457-5-9-0'].mean_var_scale[1] == 1.).all().item(), "mean_var_scale did not change!"
         assert not (model.readout['20457-5-9-0'].mean_var_scale[2] == 0.).all().item(), "mean_var_scale did not change!"
 
-        key["score"] = score
-        key["train_loss"] = output["best_model_stats"]["loss"]["train"]
-        key["validation_loss"] = output["best_model_stats"]["loss"]["validation"]
-        key["test_loss"] = output["best_model_stats"]["loss"]["test"]
-        key["train_correlation"] = output["best_model_stats"]["correlation"]["train"]
-        key["validation_correlation"] = output["best_model_stats"]["correlation"]["validation"]
-        key["test_correlation"] = output["best_model_stats"]["correlation"]["test"]
+        with tempfile.TemporaryDirectory() as temp_dir:
+            filename = make_hash(key) + ".pth.tar"
+            filepath = os.path.join(temp_dir, filename)
+            torch.save(model_state, filepath)
+            key["score"] = score
+            key["train_loss"] = output["best_model_stats"]["loss"]["train"]
+            key["validation_loss"] = output["best_model_stats"]["loss"]["validation"]
+            key["test_loss"] = output["best_model_stats"]["loss"]["test"]
+            key["train_correlation"] = output["best_model_stats"]["correlation"]["train"]
+            key["validation_correlation"] = output["best_model_stats"]["correlation"]["validation"]
+            key["test_correlation"] = output["best_model_stats"]["correlation"]["test"]
 
-        key["output"] = output
+            key["output"] = output
 
-        data_key = np.array(list(model.readout.keys())).item()
-        rd = model.readout[data_key]
+            data_key = np.array(list(model.readout.keys())).item()
+            rd = model.readout[data_key]
 
-        model.eval()
-        norm_var_diffs = []
-        for image, response, pupil_center, behavior in dataloaders["test"][data_key]:
-            mean = model.predict_mean(image, data_key=data_key, behavior=behavior, pupil_center=pupil_center)
-            variance = model.predict_variance(image, data_key=data_key, behavior=behavior, pupil_center=pupil_center)
+            model.eval()
+            norm_var_diffs = []
+            for image, response, pupil_center, behavior in dataloaders["test"][data_key]:
+                mean = model.predict_mean(image, data_key=data_key, behavior=behavior, pupil_center=pupil_center)
+                variance = model.predict_variance(image, data_key=data_key, behavior=behavior, pupil_center=pupil_center)
 
-            var = rd.mean_var_scale[0] + rd.mean_var_scale[1] * mean + rd.mean_var_scale[2] * mean**2
-            norm_var_diff = torch.abs((var - variance) / variance)
-            norm_var_diffs.append(norm_var_diff.cpu().data.numpy())
-        norm_var_diffs = np.vstack(norm_var_diffs)
-        key["norm_var_diffs"] = norm_var_diffs
-        key["mean_var_scale"] = rd.mean_var_scale.cpu().data.numpy()
-        self.insert1(key)
+                var = rd.mean_var_scale[0] + rd.mean_var_scale[1] * mean + rd.mean_var_scale[2] * mean**2
+                norm_var_diff = torch.abs((var - variance) / variance)
+                norm_var_diffs.append(norm_var_diff.cpu().data.numpy())
+            norm_var_diffs = np.vstack(norm_var_diffs)
+            key["norm_var_diffs"] = norm_var_diffs
+            key["mean_var_scale"] = rd.mean_var_scale.cpu().data.numpy()
+            self.insert1(key)
+
+            key["model_state"] = filepath
+            print("Inserting in ModelStorage table...")
+            self.ModelStorage.insert1(key, ignore_extra_fields=True)
 
 
 @schema
