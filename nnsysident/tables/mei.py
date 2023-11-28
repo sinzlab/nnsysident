@@ -94,6 +94,14 @@ class MouseSelectorTemplate(dj.Computed):
 class MEISelector(MouseSelectorTemplate):
     dataset_table = Dataset
 
+@schema
+class MENI(dj.Manual):
+    definition = """
+    -> MEISelector                     
+    ---
+    meni: longblob                # Most exiting natural image
+    """
+
 
 @schema
 class TrainedEnsembleModel(TrainedEnsembleModelTemplate):
@@ -105,6 +113,7 @@ class TrainedEnsembleModel(TrainedEnsembleModelTemplate):
 class MEI(MEITemplate):
     trained_model_table = TrainedEnsembleModel
     selector_table = MEISelector
+    meni_table = MENI
 
     def load_data(self, names, numpy=True):
         download_path = '/project/notebooks/data_' + str(uuid.uuid4())
@@ -119,7 +128,6 @@ class MEI(MEITemplate):
             data[idx] = np.stack(meis) if numpy else torch.stack(meis)
             shutil.rmtree(download_path)
         return data
-
 
 
 @schema
@@ -170,8 +178,51 @@ class MEIScore(dj.Computed):
         self.insert1(key, ignore_extra_fields=True)
 
 
+# @schema
+# class MEIExperimentsMouse(Experiments):
+#     class Restrictions(dj.Part):
+#         definition = """
+#         # This table contains the corresponding hashes to filter out models which form the respective experiment
+#         -> master
+#         -> Dataset
+#         -> TrainedEnsembleModel
+#         -> MEIMethod
+#         -> MEI.selector_table
+#         ---
+#         experiment_restriction_ts=CURRENT_TIMESTAMP:   timestamp      # UTZ timestamp at time of insertion
+#         """
+#
+# @schema
+# class MEIExperimentsMonkey(Experiments):
+#     class Restrictions(dj.Part):
+#         definition = """
+#         # This table contains the corresponding hashes to filter out models which form the respective experiment
+#         -> master
+#         -> Dataset
+#         -> TrainedEnsembleModel
+#         -> MEIMethod
+#         -> MEIMonkey.selector_table
+#         ---
+#         experiment_restriction_ts=CURRENT_TIMESTAMP:   timestamp      # UTZ timestamp at time of insertion
+#         """
+
 @schema
-class MEIExperimentsMouse(Experiments):
+class MEIExperimentsMouse(dj.Manual):
+    # Table to keep track of collections of trained networks that form an experiment.
+    # Instructions:
+    # 1) Make an entry in Experiments with an experiment name and description
+    # 2) Insert all combinations of dataset, model and trainer for this experiment name in Experiments.Restrictions.
+    # 2) Populate the TrainedModel table by restricting it with Experiments.Restrictions and the experiment name.
+    # 3) After training, join this table with TrainedModel and restrict by experiment name to get your results
+    definition = """
+    # This table contains the experiments and their descriptions
+    experiment_name: varchar(100)                     # name of experiment
+    ---
+    -> Fabrikant.proj(experiment_fabrikant='fabrikant_name')
+    experiment_comment='': varchar(2000)              # short description 
+    experiment_ts=CURRENT_TIMESTAMP:   timestamp      # UTZ timestamp at time of insertion
+    """
+
     class Restrictions(dj.Part):
         definition = """
         # This table contains the corresponding hashes to filter out models which form the respective experiment
@@ -184,16 +235,157 @@ class MEIExperimentsMouse(Experiments):
         experiment_restriction_ts=CURRENT_TIMESTAMP:   timestamp      # UTZ timestamp at time of insertion
         """
 
+    def add_entry(
+            self,
+            experiment_name,
+            experiment_fabrikant,
+            experiment_comment,
+            restrictions,
+            skip_duplicates=False,
+    ):
+        self.insert1(
+            dict(
+                experiment_name=experiment_name,
+                experiment_fabrikant=experiment_fabrikant,
+                experiment_comment=experiment_comment,
+            ),
+            skip_duplicates=skip_duplicates,
+        )
+
+        restrictions = [{**{"experiment_name": experiment_name}, **res} for res in restrictions]
+        self.Restrictions.insert(restrictions, skip_duplicates=skip_duplicates)
+
+
+# @schema
+# class MEIExperimentsMonkey(dj.Manual):
+#     # Table to keep track of collections of trained networks that form an experiment.
+#     # Instructions:
+#     # 1) Make an entry in Experiments with an experiment name and description
+#     # 2) Insert all combinations of dataset, model and trainer for this experiment name in Experiments.Restrictions.
+#     # 2) Populate the TrainedModel table by restricting it with Experiments.Restrictions and the experiment name.
+#     # 3) After training, join this table with TrainedModel and restrict by experiment name to get your results
+#     definition = """
+#     # This table contains the experiments and their descriptions
+#     experiment_name: varchar(100)                     # name of experiment
+#     ---
+#     -> Fabrikant.proj(experiment_fabrikant='fabrikant_name')
+#     experiment_comment='': varchar(2000)              # short description
+#     experiment_ts=CURRENT_TIMESTAMP:   timestamp      # UTZ timestamp at time of insertion
+#     """
+#
+#     class Restrictions(dj.Part):
+#         definition = """
+#         # This table contains the corresponding hashes to filter out models which form the respective experiment
+#         -> master
+#         -> Dataset
+#         -> TrainedEnsembleModel
+#         -> MEIMethod
+#         -> MEIMonkey.selector_table
+#         ---
+#         experiment_restriction_ts=CURRENT_TIMESTAMP:   timestamp      # UTZ timestamp at time of insertion
+#         """
+#
+#     def add_entry(
+#             self,
+#             experiment_name,
+#             experiment_fabrikant,
+#             experiment_comment,
+#             restrictions,
+#             skip_duplicates=False,
+#     ):
+#         self.insert1(
+#             dict(
+#                 experiment_name=experiment_name,
+#                 experiment_fabrikant=experiment_fabrikant,
+#                 experiment_comment=experiment_comment,
+#             ),
+#             skip_duplicates=skip_duplicates,
+#         )
+#
+#         restrictions = [{**{"experiment_name": experiment_name}, **res} for res in restrictions]
+#         self.Restrictions.insert(restrictions, skip_duplicates=skip_duplicates)
+
 @schema
-class MEIExperimentsMonkey(Experiments):
-    class Restrictions(dj.Part):
-        definition = """
-        # This table contains the corresponding hashes to filter out models which form the respective experiment
-        -> master
-        -> Dataset
-        -> TrainedEnsembleModel
-        -> MEIMethod
-        -> MEIMonkey.selector_table
-        ---
-        experiment_restriction_ts=CURRENT_TIMESTAMP:   timestamp      # UTZ timestamp at time of insertion
-        """
+class Gradients(dj.Computed):
+
+    dataset_table = Dataset
+    definition = """
+    -> Dataset
+    -> TrainedEnsembleModel
+    -> MEISelector
+    ---
+    angle: longblob
+    out_proj: longblob
+    var_grad: longblob
+    """
+
+    def make(self, key, no_insert=False):
+        from torch.optim import SGD
+        device = "cuda"
+
+        dataloaders, model = MEI().model_loader.load(key=key)
+        output_selected_model = MEI().selector_table().get_output_selected_model(model, key).to(device)
+
+        mean_grads, var_grads = [], []
+        data_key = (MEISelector() & key).fetch1("data_key")
+        d_loader = dataloaders["train"][data_key]
+        for i, (images, _, _, _) in enumerate(d_loader):
+            print(f"Batch number: {i+1}/{len(d_loader)}")
+
+            images.requires_grad_()
+            optimizer = SGD([images], lr=20)
+
+            optimizer.zero_grad()
+            behavior = torch.zeros((images.shape[0], 3)).to(device)
+            pupil_center = torch.zeros((images.shape[0], 2)).to(device)
+            x_mean = output_selected_model.predict_mean(images, behavior=behavior, pupil_center=pupil_center).sum()
+
+            x_mean.backward()
+            mean_grad = images.grad.data.cpu().numpy().copy()
+
+            optimizer.zero_grad()
+            behavior = torch.zeros((images.shape[0], 3)).to(device)
+            pupil_center = torch.zeros((images.shape[0], 2)).to(device)
+            x_var = output_selected_model.predict_variance(images, behavior=behavior, pupil_center=pupil_center).sum()
+
+            x_var.backward()
+            var_grad = images.grad.data.cpu().numpy().copy()
+            optimizer.zero_grad()
+
+            mean_grads.append(mean_grad)
+            var_grads.append(var_grad)
+
+        mean_grads = np.vstack(mean_grads)
+        var_grads = np.vstack(var_grads)
+
+        angle = self.angles(mean_grads.reshape(mean_grads.shape[0], -1), var_grads.reshape(var_grads.shape[0], -1))
+        angle = np.degrees(angle)
+
+        projs = self.projected(mean_grads.reshape(mean_grads.shape[0], -1), var_grads.reshape(var_grads.shape[0], -1))
+        projs = projs.reshape(mean_grads.shape)
+
+        if no_insert:
+            return angle, mean_grads, var_grads, projs
+        out_projs = (var_grads - projs).mean(0, keepdims=True)
+        var_grads = var_grads.mean(0, keepdims=True)
+
+        key["angle"] = angle
+        key["out_proj"] = out_projs
+        key["var_grad"] = var_grads
+        self.insert1(key)
+
+    def angles(self, u, v):
+        assert len(u.shape) == 2, "Wrong dimensions"
+
+        nominator = (u*v).sum(1)
+        denominator = np.linalg.norm(u, axis=1)*np.linalg.norm(v, axis=1)
+        return np.arccos(nominator/denominator)
+
+    def projected(self, u, v):
+        assert len(u.shape) == 2, "Wrong dimensions"
+
+        scalar = (u*v).sum(1)
+        norm = np.linalg.norm(v, axis=1)
+
+        return v * (scalar / norm**2)[:, None]
+

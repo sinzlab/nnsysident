@@ -161,6 +161,7 @@ def get_loss(
     as_dict=False,
     avg=False,
     per_neuron=True,
+    include_mean_var_scale_loss=False,
 ):
     loss_config = dict(avg=avg, per_neuron=per_neuron)
     if loss_function == "PoissonLoss":
@@ -196,6 +197,25 @@ def get_loss(
                         .cpu()
                         .data.numpy()
                     )
+                if include_mean_var_scale_loss:
+                    mean_var_scale_regularizer = 0
+                    for rd in model.readout.values():
+                        if hasattr(rd, "mean_var_scale"):
+                            mean = model.predict_mean(
+                                images.to(device),
+                                data_key=k,
+                                behavior=behavior,
+                                pupil_center=pupil_center,
+                            )
+                            variance = model.predict_variance(
+                                images.to(device),
+                                data_key=k,
+                                behavior=behavior,
+                                pupil_center=pupil_center,
+                            )
+                            var = rd.mean_var_scale[0] + rd.mean_var_scale[1] * mean + rd.mean_var_scale[2] * mean**2
+                            mean_var_scale_regularizer += 20000 * (var - variance)**2
+                    loss[-1] += mean_var_scale_regularizer.sum().cpu().data.numpy()
 
             loss = np.vstack(loss)
             loss = np.mean(loss, axis=0) if avg else np.sum(loss, axis=0)

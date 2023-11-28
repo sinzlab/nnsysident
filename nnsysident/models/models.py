@@ -87,6 +87,7 @@ class Stacked2dCoreReadoutModel:
         gamma_readout=None,
         feature_reg_weight=0.0076,
         inferred_params_n=1,
+        mean_var_scale=False,
         # gaussian readout
         init_mu_range=0.3,
         init_sigma=0.1,
@@ -259,6 +260,11 @@ class Stacked2dCoreReadoutModel:
                 key for key in not_matching_keys.unexpected_keys
             )
             assert len(not_matching_keys) == 0, "{} not matching keys found".format(len(not_matching_keys))
+
+        if mean_var_scale:
+            for key, rd in readout.items():
+                init = torch.stack((torch.zeros(rd.outdims), torch.ones(rd.outdims), torch.zeros(rd.outdims)))
+                rd.mean_var_scale = torch.nn.Parameter(init)
 
         return core, readout, shifter, modulator
 

@@ -106,7 +106,30 @@ def standard_trainer(
                 target=responses.to(device),
                 output=output,
             )
-        return loss_scale * likelihood + regularizers
+
+        mean_var_scale_regularizer = 0
+        for rd in model.readout.values():
+            if hasattr(rd, "mean_var_scale"):
+                mean = model.predict_mean(
+                    images.to(device),
+                    data_key=data_key,
+                    detach_core=detach_core,
+                    behavior=behavior,
+                    pupil_center=pupil_center,
+                )
+                variance = model.predict_variance(
+                    images.to(device),
+                    data_key=data_key,
+                    detach_core=detach_core,
+                    behavior=behavior,
+                    pupil_center=pupil_center,
+                )
+                var = rd.mean_var_scale[0] + rd.mean_var_scale[1] * mean + rd.mean_var_scale[2] * mean**2
+                mean_var_scale_regularizer += torch.mean((var - variance)**2) if avg_loss else torch.sum((var - variance)**2)
+                mean_var_scale_regularizer = 20000 * mean_var_scale_regularizer
+
+        return loss_scale * likelihood + regularizers + mean_var_scale_regularizer
+
 
     ##### Model training ####################################################################################################
     model.to(device)
@@ -123,7 +146,7 @@ def standard_trainer(
         avg=avg_loss,
     )
     if stop_function == "get_loss":
-        stop_closure = partial(stop_closure, loss_function=loss_function)
+        stop_closure = partial(stop_closure, loss_function=loss_function, include_mean_var_scale_loss=True)
 
     n_iterations = len(LongCycler(dataloaders["train"]))
 
